@@ -2,6 +2,19 @@
 *.slxc
 slprj*
 
+*key
+
+
+assets/* 
+
+
+# venv things
+pyvenv.cfg
+*/Include/*
+*/Scripts/*
+*/share/*
+*/Lib/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
