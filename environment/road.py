@@ -44,9 +44,13 @@ def get_road_image(api_key: str, center: tuple[float, float], zoom: int,
 
 if __name__ == '__main__':
     import os
-    api_key = open(os.path.join(os.pardir, "api.key")).read().strip()
+    key_fname = 'api.key'
+    if not os.path.exists(key_fname):
+        key_fname = os.path.join(os.pardir, "api.key")
+
+    api_key = open(key_fname).read().strip()
     img = get_road_image(api_key, (38.72, -9.15), 15)
-    
+
     # cv2 imshow
     cv2.imshow("img", img)
     cv2.waitKey(0)
