@@ -118,7 +118,7 @@ def get_road_image(api_key: str, center: tuple[float, float], zoom: int,
         img = img[:-watermark_size, :, :]
     return img
 
-def get_road_graph(img_binary: np.ndarray, max_regulatization_iter: int = 5) -> np.ndarray:
+def get_road_graph(img_binary: np.ndarray, max_regulatization_iter: int = 5, max_regularization_dist: float = 20.0) -> np.ndarray:
     """
     Get road graph from road image.
     Args:
@@ -164,6 +164,9 @@ def get_road_graph(img_binary: np.ndarray, max_regulatization_iter: int = 5) -> 
             nodes_deleted_iter = 0
             for connection in graph.connections:
                 if len(graph.connections[connection]) == 2: # just remove node
+                    node1, node2 = graph.connections[connection].keys()
+                    if graph.connections[connection][node1] > max_regularization_dist or graph.connections[connection][node2] > max_regularization_dist:
+                        continue
                     graph.replace_node_with_edge(connection)
                     nodes_deleted_iter += 1
             nodes_deleted += nodes_deleted_iter
