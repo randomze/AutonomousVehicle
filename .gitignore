@@ -7,6 +7,8 @@ slprj*
 
 assets/* 
 
+# images
+*.png
 
 # venv things
 pyvenv.cfg

@@ -1,10 +1,12 @@
 import cv2
 import numpy as np
 import requests
+import os
+import logging
 
 def get_road_image(api_key: str, center: tuple[float, float], zoom: int, 
                     size: tuple[int, int] = (400, 400), 
-                    style_map_id: str = "6e80ae00ec0ca703") -> np.ndarray:
+                    style_map_id: str = "6e80ae00ec0ca703", img_caching = True) -> np.ndarray:
     """
     Get road image from Google Maps API.
     Args:
@@ -13,9 +15,11 @@ def get_road_image(api_key: str, center: tuple[float, float], zoom: int,
         zoom: Zoom level.
         size: Size of the map in pixels.
         style_map_id: Style map id, used to apply styling.
+        img_caching: Use caching to minimize number of API calls.
     Returns:
         Road image.
     """
+    img_cache_dir = "cache"
     # bottom 20 pixels contain watermark, therefore we increase the size and crop
     # the bottom 20 pixels - the center must, then, be adjusted accordingly
     watermark_size = 20
@@ -34,19 +38,32 @@ def get_road_image(api_key: str, center: tuple[float, float], zoom: int,
             f"center={center[0]},{center[1]}&size={size[0]}x{size[1]}" \
             f"&zoom={zoom}&map_id={style_map_id}&key={api_key}"
 
-    # get image from request and convert to cv2 image
-    response = requests.get(url)
-    array = np.frombuffer(response.content, np.uint8)
-    img = cv2.imdecode(array, cv2.IMREAD_UNCHANGED)
-    print(img.shape)
-    return img[:-watermark_size, :, :]
-
+    if img_caching:
+        # cache image
+        img_name = f"c={center[0]},{center[1]};s={size[0]}x{size[1]};z={zoom};id={style_map_id}"
+        directory = os.path.join(os.path.dirname(__file__), img_cache_dir)
+        if not os.path.isdir(directory):
+            os.mkdir(directory)
+        img_path = os.path.join(directory, img_name + ".png")
+        if not os.path.isfile(img_path):
+            print("Cached image not found, downloading...")
+            response = requests.get(url)
+            img = cv2.imdecode(np.frombuffer(response.content, np.uint8), cv2.IMREAD_UNCHANGED)
+            img = img[:-watermark_size, :, :]
+            cv2.imwrite(img_path, img)
+        img = cv2.imread(img_path)
+    else:
+        # get image from url
+        response = requests.get(url)
+        img = cv2.imdecode(np.frombuffer(response.content, np.uint8), cv2.IMREAD_UNCHANGED)
+        # crop bottom 20 pixels
+        img = img[:-watermark_size, :, :]
+    return img
 
 if __name__ == '__main__':
-    import os
     key_fname = 'api.key'
     if not os.path.exists(key_fname):
-        key_fname = os.path.join(os.pardir, "api.key")
+        key_fname = os.path.join(os.pardir, key_fname)
 
     api_key = open(key_fname).read().strip()
     img = get_road_image(api_key, (38.72, -9.15), 15)
@@ -55,3 +72,4 @@ if __name__ == '__main__':
     cv2.imshow("img", img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
