@@ -118,7 +118,7 @@ def get_road_image(api_key: str, center: tuple[float, float], zoom: int,
         img = img[:-watermark_size, :, :]
     return img
 
-def get_road_graph(img_binary: np.ndarray) -> np.ndarray:
+def get_road_graph(img_binary: np.ndarray, max_regulatization_iter: int = 5) -> np.ndarray:
     """
     Get road graph from road image.
     Args:
@@ -157,9 +157,10 @@ def get_road_graph(img_binary: np.ndarray) -> np.ndarray:
                     road_graph.add_connection((i, j), (i+1, j+1), np.sqrt(2))
     print(f"Regularizing graph with {len(road_graph.connections)}...")
     def regularize(graph: WeightedGraph) -> int:
+        iterations = 0
         nodes_deleted = 0
         nodes_deleted_iter = 1
-        while nodes_deleted_iter > 0:
+        while nodes_deleted_iter > 0 and iterations < max_regulatization_iter:
             nodes_deleted_iter = 0
             for connection in graph.connections:
                 if len(graph.connections[connection]) == 2: # just remove node
@@ -169,6 +170,7 @@ def get_road_graph(img_binary: np.ndarray) -> np.ndarray:
             for connection in list(graph.connections):
                 if graph.connections[connection] == {}:
                     graph.remove_node(connection)
+            iterations += 1
         return nodes_deleted
     deleted = regularize(road_graph)
     print(f"Regularization deleted {deleted} nodes.")
@@ -180,7 +182,9 @@ if __name__ == '__main__':
         key_fname = os.path.join(os.pardir, key_fname)
 
     api_key = open(key_fname).read().strip()
-    img_color = get_road_image(api_key, (38.72, -9.15), 15)
+    #img_color = get_road_image(api_key, (38.72, -9.15), 15) #random lisbon place
+    img_color = get_road_image(api_key, (38.7367256,-9.1388871), 16) # ist
+    
     img_binary = np.sum(img_color, 2) > 0.5
     img_gray = np.zeros_like(img_color)
     for i in range(3):
