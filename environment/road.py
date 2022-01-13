@@ -106,7 +106,7 @@ def get_road_info(*args, **kwargs) -> tuple[np.ndarray, WeightedGraph]:
 
 
 if __name__ == '__main__':
-    #img_color = get_road_image(api_key, (38.72, -9.15), 15) #random lisbon place
+    #img, graph = get_road_image(retrieve_api_key(), (38.72, -9.15), 15) #random lisbon place
     img, graph = get_road_info(retrieve_api_key(), (38.7367256,-9.1388871), 16) # ist
     
     img_graph = draw_graph(img, graph, transpose=True)
