@@ -1,10 +1,17 @@
 import matplotlib.pyplot as plt
-import numpy as np
 import matlab.engine
 
-eng = matlab.engine.start_matlab()
+opt = "-desktop"
+
+cur_engs = matlab.engine.find_matlab()
+if len(cur_engs) == 0:
+    eng = matlab.engine.start_matlab(option=opt)
+else:
+    eng = matlab.engine.connect_matlab(name=cur_engs[0])
 
 eng.workspace['gain'] = 100
+
+eng.eval("other_gain = 200;", nargout=0)
 
 simout = eng.sim('test')
 
