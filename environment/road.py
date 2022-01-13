@@ -1,4 +1,4 @@
-from graph import WeightedGraph, get_graph_from_binary_image, draw_graph
+from graph import WeightedGraph, get_graph_from_binary_image, draw_graph, draw_path
 import cv2
 import numpy as np
 import requests
@@ -110,8 +110,22 @@ if __name__ == '__main__':
     img, graph = get_road_info(retrieve_api_key(), (38.7367256,-9.1388871), 16) # ist
     
     img_graph = draw_graph(img, graph, transpose=True)
+    
+    # example demonstrating shortest path calculation
+    source, end = list(graph.connections.keys())[1], list(graph.connections.keys())[250]
+    parents, distances = graph.get_mst_dijkstra(source)
+    path = graph.get_path_from_mst(end, parents, distances)
+
+    #print(graph)
+    print(f"Shortest path from {source} to {end}: {path}")
+    print(f"Shortest path length in nodes: {len(path)}")
+    print(f"Shortest path length in meters: {graph.get_path_cost(path)}")
+
+    img_path = draw_path(img_graph, path, edge_color = (255, 255, 255), node_color = (255, 255, 255), transpose=True)
+
+    cv2.imshow('img_path', img_path)
     cv2.imshow('img_graph', img_graph)
     cv2.imshow('original', img)
-
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+

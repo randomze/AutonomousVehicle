@@ -54,40 +54,48 @@ class WeightedGraph:
         self.add_connection(node1, node2, self.connections[middle_node][node1] + self.connections[middle_node][node2])
         self.remove_connection(node1, middle_node)
         self.remove_connection(node2, middle_node)
-    def get_shortest_path_dijkstra(self, start_node, end_node):
-        if start_node == end_node:
-            return [start_node]
-
-        if start_node not in self.connections:
-            raise ValueError('Start node not in graph')
-        if end_node not in self.connections:
-            raise ValueError('End node not in graph')
-        
-        unvisited = set(self.get_all_nodes())
-        distances = {node: float('inf') for node in unvisited}
-        distances[start_node] = 0
-        previous = {node: None for node in unvisited}
-        
-        while unvisited:
-            current_node = min(unvisited, key=lambda node: distances[node])
-            unvisited.remove(current_node)
-            if current_node == end_node:
-                break
-            for neighbor in self.get_connections(current_node):
-                if neighbor in unvisited:
-                    neighbor_distance = distances[current_node] + self.get_weight(current_node, neighbor)
-                    if neighbor_distance < distances[neighbor]:
-                        distances[neighbor] = neighbor_distance
-                        previous[neighbor] = current_node
-        
+    def get_mst_dijkstra(self, source):
+        # mark all nodes as unvisited
+        unvisited_set = list(self.get_all_nodes())
+        # initialize the tentative distance to all nodes as infinity
+        tentative_distances = {node: float('inf') for node in self.get_all_nodes()}
+        # set the distance from the start node to itself to 0
+        tentative_distances[source] = 0
+        # set the parent of the start node to itself
+        parents = {node: node for node in self.get_all_nodes()}
+        current_node = source
+        # while there are unvisited nodes
+        while True:
+            # find the unvisited neighbors of the current node
+            neighbors = self.get_connections(current_node)
+            # for each neighbor, calculate the tentative distance
+            for neighbor in neighbors:
+                # if the tentative distance is less than the current distance
+                if tentative_distances[neighbor] > tentative_distances[current_node] + self.get_weight(current_node, neighbor):
+                    # update the tentative distance
+                    tentative_distances[neighbor] = tentative_distances[current_node] + self.get_weight(current_node, neighbor)
+                    # update the parent
+                    parents[neighbor] = current_node
+            # remove the node from the unvisited set
+            unvisited_set.remove(current_node)
+            # if there are no unvisited nodes left, we're done
+            if len(unvisited_set) == 0: break
+            # find the node with the smallest tentative distance
+            current_node = min(unvisited_set, key=lambda node: tentative_distances[node])
+        return parents, tentative_distances
+    def get_path_from_mst(self, end_node, parents, distances):
+        if distances[end_node] == float('inf'):
+            return []
         path = [end_node]
-        while previous[end_node] is not None:
-            path.append(previous[end_node])
-            end_node = previous[end_node]
+        current_node = end_node
+        while current_node != parents[current_node]:
+            path.append(parents[current_node])
+            current_node = parents[current_node]
         path.reverse()
         return path
+        
     def __str__(self) -> str:
-        return str(self.connections)
+        return '\n'.join([f'Node {idx+1}: ' + str(node) + ' -> ' + str(' '.join([str(conn) for conn in self.connections[node]])) for idx, node in enumerate(self.connections)])
     
 
 def get_graph_from_binary_image(img_binary: np.ndarray, max_regulatization_iter: int = 5, max_regularization_dist: float = 20.0, verbose: bool = False) -> np.ndarray:
@@ -157,6 +165,26 @@ def get_graph_from_binary_image(img_binary: np.ndarray, max_regulatization_iter:
     deleted = regularize(graph)
     if verbose: print(f"Regularization deleted {deleted} nodes, leaving {len(graph.connections)} nodes.")
     return graph
+
+def draw_path(img: np.ndarray, path: list, *draw_args, **draw_kwargs) -> np.ndarray:
+    """
+    Draw a path on an image. Uses draw_graph, so see that for more info on arguments.
+    Args:
+        img: Image to draw path on.
+        path: Path to draw.
+        *draw_args: Arguments to pass to draw_graph.
+        **draw_kwargs: Keyword arguments to pass to draw_graph.
+    Returns:
+        Image with path drawn.
+    """
+    img_out = img.copy()
+    graph = WeightedGraph()
+    for i in range(0, len(path)-1):
+        graph.add_connection(path[i], path[i+1])
+    
+    img_out = draw_graph(img_out, graph, *draw_args, **draw_kwargs)
+
+    return img_out
 
 def draw_graph(img: np.ndarray, graph: WeightedGraph, transpose: bool = False,
                 edge_color: tuple[int, int, int] = (255, 0, 255),
