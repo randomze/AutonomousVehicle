@@ -98,7 +98,7 @@ class WeightedGraph:
         return '\n'.join([f'Node {idx+1}: ' + str(node) + ' -> ' + str(' '.join([str(conn) for conn in self.connections[node]])) for idx, node in enumerate(self.connections)])
     
 
-def get_graph_from_binary_image(img_binary: np.ndarray, max_regulatization_iter: int = 5, max_regularization_dist: float = 20.0, verbose: bool = False) -> np.ndarray:
+def get_graph_from_binary_image(img_binary: np.ndarray, max_regulatization_iter: int = 5, max_regularization_dist: float = np.inf, verbose: bool = False) -> np.ndarray:
     """
     Get road graph from road image. Image must be binary.
     Args:

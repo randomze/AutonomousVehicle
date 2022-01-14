@@ -1,4 +1,5 @@
-from graph import WeightedGraph, get_graph_from_binary_image, draw_graph, draw_path
+from typing import Union
+from .graph import WeightedGraph, get_graph_from_binary_image, draw_graph, draw_path
 import cv2
 import numpy as np
 import requests
@@ -36,9 +37,10 @@ def zoom_to_scale(zoom: int, latitude: float):
     meters_per_pixel = 156543.03392 * np.cos(latitude * np.pi / 180) / np.power(2, zoom) 
     return meters_per_pixel
 
-def get_road_image(api_key: str, center: tuple[float, float], zoom: int, 
+def get_road_image(center: tuple[float, float], zoom: int, 
                     size: tuple[int, int] = (400, 400), 
-                    style_map_id: str = "6e80ae00ec0ca703", img_caching = True) -> np.ndarray:
+                    style_map_id: str = "6e80ae00ec0ca703", img_caching = True, 
+                    single_channel: bool= False, api_key: Union[None, str] = None) -> np.ndarray:
     """
     Get road image from Google Maps API.
     Args:
@@ -51,6 +53,8 @@ def get_road_image(api_key: str, center: tuple[float, float], zoom: int,
     Returns:
         Road image.
     """
+    if api_key is None:
+        api_key = retrieve_api_key()
     img_cache_dir = "cache"
     # bottom 20 pixels contain watermark, therefore we increase the size and crop
     # the bottom 20 pixels - the center must, then, be adjusted accordingly
@@ -67,7 +71,7 @@ def get_road_image(api_key: str, center: tuple[float, float], zoom: int,
 
     # build url
     url = "https://maps.googleapis.com/maps/api/staticmap?" \
-            f"center={center[0]},{center[1]}&size={size[0]}x{size[1]}" \
+            f"center={center[0]},{center[1]}&size={size[0]}x{size[1] + watermark_size}" \
             f"&zoom={zoom}&map_id={style_map_id}&key={api_key}"
 
     if img_caching:
@@ -90,9 +94,14 @@ def get_road_image(api_key: str, center: tuple[float, float], zoom: int,
         img = cv2.imdecode(np.frombuffer(response.content, np.uint8), cv2.IMREAD_UNCHANGED)
         # crop bottom 20 pixels
         img = img[:-watermark_size, :, :]
+
+    if single_channel:
+        img = np.sum(img, 2)
+        np.where(img > 255, 255, img)
+        img = img.astype(np.uint8)
     return img
 
-def get_road_info(*args, **kwargs) -> tuple[np.ndarray, WeightedGraph]:
+def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np.ndarray, WeightedGraph]:
     """Get road image from Google Maps API and build road graph.
     Check documentation for get_road_image for arguments.
 
@@ -101,13 +110,13 @@ def get_road_info(*args, **kwargs) -> tuple[np.ndarray, WeightedGraph]:
         **kwargs: Keyword arguments for get_road_image.
     """
     img = get_road_image(*args, **kwargs)
-    road_graph = get_graph_from_binary_image(np.sum(img, 2) > 0.5)
+    road_graph = get_graph_from_binary_image((np.sum(img, 2) if len(img.shape) > 2 else img) > 0.5, max_regularization_dist = max_regularization_dist)
     return img, road_graph
 
 
 if __name__ == '__main__':
-    #img, graph = get_road_image(retrieve_api_key(), (38.72, -9.15), 15) #random lisbon place
-    img, graph = get_road_info(retrieve_api_key(), (38.7367256,-9.1388871), 16) # ist
+    #img, graph = get_road_image((38.72, -9.15), 15) #random lisbon place
+    img, graph = get_road_info((38.7367256,-9.1388871), 16, max_regularization_dist=20) # ist
     
     img_graph = draw_graph(img, graph, transpose=True)
     
