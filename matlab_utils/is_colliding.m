@@ -1,11 +1,23 @@
 function colliding = is_colliding(obj1, obj2)
-%IS_COLLIDING Checks if obj1 and obj2 are colliding with separating axis theorem
+%IS_COLLIDING_AX1 Checks if obj1 and obj2 are colliding with separating axis theorem
     % obj1 and obj2 must be convex, and described by adjacent vertexes (ANTI-CLOCKWISE)
     % (meaning obj1(1) is assumed to be connected only to obj1(2) and
     % obj1(end)
 
     % Maybe AABB followed by SAT would be faster - if performance is an
     % issue - due to most objects not colliding with each other
+    if ~ is_colliding_ax1(obj1, obj2)
+        colliding = false;
+        return
+    end
+    if ~ is_colliding_ax1(obj2, obj1)
+        colliding = false;
+        return
+    end
+    colliding = true;
+end
+
+function colliding = is_colliding_ax1(obj1, obj2)
 
     for i = 1:length(obj1)
         j = mod(i,length(obj1)) + 1;
