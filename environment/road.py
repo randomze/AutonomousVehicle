@@ -1,5 +1,6 @@
+from enum import Enum
 from typing import Union
-from .graph import WeightedGraph, get_graph_from_binary_image, draw_graph, draw_path
+from . import graph
 import cv2
 import numpy as np
 import requests
@@ -101,7 +102,44 @@ def get_road_image(center: tuple[float, float], zoom: int,
         img = img.astype(np.uint8)
     return img
 
-def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np.ndarray, WeightedGraph]:
+class BorderType(Enum):
+    """
+    Types of borders.
+    """
+    NO_OP = 0
+    FULL_0 = 1
+    FULL_1 = 2
+
+def get_edge_img(binary_img: np.ndarray, border_type: BorderType = BorderType.FULL_1) -> np.ndarray:
+    """Get road edge image from road image. Useful for road edge detection.
+    Uses the hit-or-miss transform. 
+
+    Args:
+        img: Road image.
+        border_type: Type of border. If a border is selected, a larger image is created.
+    Returns:
+        Road edge image.
+    """
+    # invert image
+    binary_img = 255 - binary_img
+
+    structure_element_8_connected = np.array([
+        [1, 1, 1], 
+        [1, 1, 1], 
+        [1, 1, 1]], dtype=np.uint8)
+
+    # hit-or-miss transform
+    img_edge_4_connected = cv2.morphologyEx(binary_img, cv2.MORPH_HITMISS, structure_element_8_connected)
+    ret_img = np.abs(img_edge_4_connected - binary_img)
+
+    if border_type == BorderType.FULL_0:
+        ret_img = cv2.copyMakeBorder(ret_img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=0)
+    elif border_type == BorderType.FULL_1:
+        ret_img = cv2.copyMakeBorder(ret_img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=255)
+
+    return ret_img
+
+def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np.ndarray, graph.WeightedGraph]:
     """Get road image from Google Maps API and build road graph.
     Check documentation for get_road_image for arguments.
 
@@ -110,27 +148,27 @@ def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np
         **kwargs: Keyword arguments for get_road_image.
     """
     img = get_road_image(*args, **kwargs)
-    road_graph = get_graph_from_binary_image((np.sum(img, 2) if len(img.shape) > 2 else img) > 0.5, max_regularization_dist = max_regularization_dist)
+    road_graph = graph.get_graph_from_binary_image((np.sum(img, 2) if len(img.shape) > 2 else img) > 0.5, max_regularization_dist = max_regularization_dist)
     return img, road_graph
 
-
+# btw, run this script from base directory with python -m environment.road
 if __name__ == '__main__':
     #img, graph = get_road_image((38.72, -9.15), 15) #random lisbon place
-    img, graph = get_road_info((38.7367256,-9.1388871), 16, max_regularization_dist=20) # ist
+    img, r_graph = get_road_info((38.7367256,-9.1388871), 16, max_regularization_dist=20) # ist
     
-    img_graph = draw_graph(img, graph, transpose=True)
+    img_graph = graph.draw_graph(img, r_graph, transpose=True)
     
     # example demonstrating shortest path calculation
-    source, end = list(graph.connections.keys())[1], list(graph.connections.keys())[250]
-    parents, distances = graph.get_mst_dijkstra(source)
-    path = graph.get_path_from_mst(end, parents, distances)
+    source, end = list(r_graph.connections.keys())[1], list(r_graph.connections.keys())[250]
+    parents, distances = r_graph.get_mst_dijkstra(source)
+    path = r_graph.get_path_from_mst(end, parents, distances)
 
     #print(graph)
     print(f"Shortest path from {source} to {end}: {path}")
     print(f"Shortest path length in nodes: {len(path)}")
-    print(f"Shortest path length in meters: {graph.get_path_cost(path)}")
+    print(f"Shortest path length in meters: {r_graph.get_path_cost(path)}")
 
-    img_path = draw_path(img_graph, path, edge_color = (255, 255, 255), node_color = (255, 255, 255), transpose=True)
+    img_path = graph.draw_path(img_graph, path, edge_color = (255, 255, 255), node_color = (255, 255, 255), transpose=True)
 
     cv2.imshow('img_path', img_path)
     cv2.imshow('img_graph', img_graph)

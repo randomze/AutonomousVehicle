@@ -4,8 +4,10 @@ from scipy.io import savemat
 
 cur_engs = matlab.engine.find_matlab()
 if len(cur_engs) == 0:
+    print('No matlab engine found. Starting a new one.')
     eng = matlab.engine.start_matlab()
 else:
+    print(f'Connecting to existing matlab engine: {cur_engs[0]}')
     eng = matlab.engine.connect_matlab(name=cur_engs[0])
 del cur_engs
 

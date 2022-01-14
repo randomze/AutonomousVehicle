@@ -1,7 +1,8 @@
 import matlab.engine
 import matlab
-import matlab_utils.utils as m_utils
+import matlab_utils.m_py_intercom as m_utils
 import environment.road as road
+import cv2
 
 eng: matlab.engine.MatlabEngine = m_utils.get_engine()
 
@@ -33,10 +34,18 @@ road_description = {
     'meters_per_pixel': float(road.zoom_to_scale(zoom, lat)),
 }
 
-m_utils.to_workspace(sim_initial_conditions, car_description, road_description)
+r_edges_name = 'road_edges'
+r_edges = road.get_edge_img(road_img)
+
+m_utils.big_var_to_workspace(r_edges_name, r_edges)
+eng.eval(f'{r_edges_name} = logical({r_edges_name});', nargout=0)
+
 m_utils.big_var_to_workspace(r_name, road_img)
 eng.eval(f'{r_name} = logical({r_name});', nargout=0)
-simout = eng.sim('simulation')
+
+m_utils.to_workspace(sim_initial_conditions, car_description, road_description)
+
+#simout = eng.sim('simulation')
 
 
 #cv2.imshow('road_img', road_img)
