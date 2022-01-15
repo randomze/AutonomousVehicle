@@ -28,7 +28,7 @@ car_description = {
 r_name = 'road_img'
 lat, long = (38.7367256,-9.1388871)
 zoom = 16
-road_img, road_graph = road.get_road_info((lat, long), zoom, single_channel=True)
+road_img, road_graph = road.get_road_info((lat, long), zoom, res_zoom_upsample = 2)
 
 road_description = {
     'meters_per_pixel': float(road.zoom_to_scale(zoom, lat)),
@@ -47,7 +47,8 @@ m_utils.to_workspace(sim_initial_conditions, car_description, road_description)
 
 #simout = eng.sim('simulation')
 
-
-#cv2.imshow('road_img', road_img)
-#cv2.waitKey(0)
-#cv2.destroyAllWindows()
+# save image
+cv2.imwrite('road_img.png', road_img)
+cv2.imshow('road_img', road_img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()

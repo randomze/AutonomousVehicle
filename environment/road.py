@@ -38,10 +38,123 @@ def zoom_to_scale(zoom: int, latitude: float):
     meters_per_pixel = 156543.03392 * np.cos(latitude * np.pi / 180) / np.power(2, zoom) 
     return meters_per_pixel
 
-def get_road_image(center: tuple[float, float], zoom: int, 
-                    size: tuple[int, int] = (400, 400), 
-                    style_map_id: str = "6e80ae00ec0ca703", img_caching = True, 
-                    single_channel: bool= False, api_key: Union[None, str] = None) -> np.ndarray:
+def upsampling_centers(initial_center, size, zoom, upsampling):
+    """Upsample the center of the road image.
+    Args:
+        initial_center: Center of the road image.
+        zoom: Zoom level.
+        upsampling: Upsampling factor.
+    Returns:
+        List of centers.
+    """
+    centers_rad = [(initial_center[0]*np.pi/180, initial_center[1]*np.pi/180)]
+    earth_radius = 6378137
+    meter_per_pixel = zoom_to_scale(zoom + upsampling, initial_center[0])
+    meter_height = size[0] * meter_per_pixel
+    meter_width = size[1] * meter_per_pixel
+    lat_range = 0.5*np.arcsin((meter_height/2) / earth_radius) 
+    lon_range = 0.5*np.arcsin((meter_width/2) / earth_radius) / np.cos(initial_center[0] * np.pi / 180) # adjust for latitude (mercator projection)
+    for i in range(upsampling):
+        new_centers = []
+        for center in centers_rad:
+            new_centers.append((center[0] + lat_range, center[1] - lon_range))
+            new_centers.append((center[0] + lat_range, center[1] + lon_range))
+            new_centers.append((center[0] - lat_range, center[1] - lon_range))
+            new_centers.append((center[0] - lat_range, center[1] + lon_range))
+        lat_range = lat_range / 2
+        lon_range = lon_range / 2
+        centers_rad = new_centers
+        #print(i)
+        #print(centers_rad)
+    center_deg = [(c[0]*180/np.pi, c[1]*180/np.pi) for c in centers_rad]
+    # sort centers by decreasing latitude and increasing longitude
+    center_deg.sort(key=lambda x: (x[0], -x[1]), reverse=True)
+    return center_deg
+
+def get_road_image(center: tuple[float, float], zoom: int,
+                    res_zoom_upsample: int = 0, margin_px: int = 10) -> np.ndarray:
+    """Stitch several images together to create a single, upsampled, image
+    """
+    size_per_img = (400, 400)
+    size_w_margin = (size_per_img[0] + 2*margin_px, size_per_img[1] + 2*margin_px)
+    if res_zoom_upsample == 0:
+        return get_single_road_image(center, zoom, size_w_margin)
+    res_x = size_per_img[0] * (2 ** res_zoom_upsample) + 2*margin_px
+    res_y = size_per_img[1] * (2 ** res_zoom_upsample) + 2*margin_px
+    big_img = np.zeros((res_y, res_x), dtype=np.uint8)
+    centers = upsampling_centers(center, big_img.shape, zoom, res_zoom_upsample)
+    stride_x = size_per_img[0]
+    stride_y = size_per_img[1]
+    for i in range(int(2**(res_zoom_upsample))):
+        for j in range(int(2**(res_zoom_upsample))):
+            cur_center = centers[i*int(2**(res_zoom_upsample)) + j]
+            img = get_single_road_image(cur_center, zoom+res_zoom_upsample, size_w_margin)
+            big_img[i*stride_y:(i+1)*stride_y + 2*margin_px, j*stride_x:(j+1)*stride_x + 2*margin_px] = img
+    return big_img
+
+def upsampling_centers_rec(initial_center, size, zoom, upsampling):
+    """Upsample the center of the road image.
+    Args:
+        initial_center: Center of the road image.
+        zoom: Zoom level.
+        upsampling: Upsampling factor.
+    Returns:
+        List of centers.
+    """
+    ic_rad = (initial_center[0]*np.pi/180, initial_center[1]*np.pi/180)
+    earth_radius = 6378137
+    zoom = zoom + upsampling
+    meter_per_pixel = zoom_to_scale(zoom, initial_center[0])
+    meter_height = size[0] * meter_per_pixel
+    meter_width = size[1] * meter_per_pixel
+    lat_range = np.arcsin((meter_height/2) / earth_radius) 
+    lon_range = np.arcsin((meter_width/2) / earth_radius) / np.cos(initial_center[0] * np.pi / 180) # adjust for latitude (mercator projection)
+    centers_rad = []
+    centers_rad.append((ic_rad[0] + lat_range, ic_rad[1] - lon_range))
+    centers_rad.append((ic_rad[0] + lat_range, ic_rad[1] + lon_range))
+    centers_rad.append((ic_rad[0] - lat_range, ic_rad[1] - lon_range))
+    centers_rad.append((ic_rad[0] - lat_range, ic_rad[1] + lon_range))
+    center_deg = [(c[0]*180/np.pi, c[1]*180/np.pi) for c in centers_rad]
+    return center_deg
+
+
+def get_road_image_rec(center: tuple[float, float], zoom: int,
+                    res_zoom_upsample: int = 0, margin_px: int = 10) -> np.ndarray:
+    """Stitch several images together to create a single, upsampled, image
+    """
+    size_img_standard = (400, 400)
+    size_w_margin = (size_img_standard[0] + 2*margin_px, size_img_standard[1] + 2*margin_px)
+    if res_zoom_upsample == 0:
+        return get_single_road_image(center, zoom, size_w_margin)
+    size_per_img = (400 * (2 ** (res_zoom_upsample-1)), 400 * (2 ** (res_zoom_upsample-1)))
+    centers = upsampling_centers_rec(center, size_per_img, zoom, res_zoom_upsample)
+    res_x = size_per_img[0]*2 + 2*margin_px
+    res_y = size_per_img[1]*2 + 2*margin_px
+    big_img = np.zeros((res_y, res_x), dtype=np.uint8)
+    stride_x = size_per_img[0]
+    stride_y = size_per_img[1]
+    print(res_x)
+    print(res_y)
+    topleft_img = get_road_image_rec(centers[0], zoom+1, res_zoom_upsample-1, margin_px)
+    topright_img = get_road_image_rec(centers[1], zoom+1, res_zoom_upsample-1, margin_px)
+    bottomleft_img = get_road_image_rec(centers[2], zoom+1, res_zoom_upsample-1, margin_px)
+    bottomright_img = get_road_image_rec(centers[3], zoom+1, res_zoom_upsample-1, margin_px)
+    print(f"{res_zoom_upsample = }")
+    print(f"{res_x = }")
+    print(f"{res_y = }")
+    print(f"{size_per_img = }")    
+    print(f"{stride_x = }")
+    print(f"{stride_y = }")
+    print(f"{stride_y = }, {stride_y*2 + 2*margin_px = }")
+    big_img[0:stride_x + 2*margin_px, 0:stride_y + 2*margin_px] = topleft_img
+    big_img[0:stride_x + 2*margin_px, stride_y:stride_y*2 + 2*margin_px] = topright_img
+    big_img[stride_x:stride_x*2 + 2*margin_px, 0:stride_y + 2*margin_px] = bottomleft_img
+    big_img[stride_x:stride_x*2 + 2*margin_px, stride_y:stride_y*2 + 2*margin_px] = bottomright_img
+    return big_img
+
+
+def get_single_road_image(center: tuple[float, float], zoom: int, 
+                    size: tuple[int, int] = (400, 400)) -> np.ndarray:
     """
     Get road image from Google Maps API.
     Args:
@@ -54,9 +167,9 @@ def get_road_image(center: tuple[float, float], zoom: int,
     Returns:
         Road image.
     """
-    if api_key is None:
-        api_key = retrieve_api_key()
+    api_key = retrieve_api_key()
     img_cache_dir = "cache"
+    threshold_valid_pixel = 30
     # bottom 20 pixels contain watermark, therefore we increase the size and crop
     # the bottom 20 pixels - the center must, then, be adjusted accordingly
     watermark_size = 20
@@ -73,33 +186,32 @@ def get_road_image(center: tuple[float, float], zoom: int,
     # build url
     url = "https://maps.googleapis.com/maps/api/staticmap?" \
             f"center={center[0]},{center[1]}&size={size[0]}x{size[1] + watermark_size}" \
-            f"&zoom={zoom}&map_id={style_map_id}&key={api_key}"
+            f"&zoom={zoom}&map_id=6e80ae00ec0ca703&key={api_key}"
 
-    if img_caching:
-        # cache image
-        img_name = f"c={center[0]},{center[1]};s={size[0]}x{size[1]};z={zoom};id={style_map_id}"
-        directory = os.path.join(os.path.dirname(__file__), img_cache_dir)
-        if not os.path.isdir(directory):
-            os.mkdir(directory)
-        img_path = os.path.join(directory, img_name + ".png")
-        if not os.path.isfile(img_path):
-            print("Cached image not found, downloading...")
+    # cache image
+    img_name = f"c={center[0]},{center[1]};s={size[0]}x{size[1]};z={zoom}"
+    directory = os.path.join(os.path.dirname(__file__), img_cache_dir)
+    if not os.path.isdir(directory):
+        os.mkdir(directory)
+    img_path = os.path.join(directory, img_name + ".png")
+    if not os.path.isfile(img_path):
+        print("Cached image not found, downloading...")
+        try:
             response = requests.get(url)
             img = cv2.imdecode(np.frombuffer(response.content, np.uint8), cv2.IMREAD_UNCHANGED)
             img = img[:-watermark_size, :, :]
-            cv2.imwrite(img_path, img)
-        img = cv2.imread(img_path)
-    else:
-        # get image from url
-        response = requests.get(url)
-        img = cv2.imdecode(np.frombuffer(response.content, np.uint8), cv2.IMREAD_UNCHANGED)
-        # crop bottom 20 pixels
-        img = img[:-watermark_size, :, :]
+        except TypeError as exc:
+            print(f"{response.content = }")
+            print(f"{center = }")
+            print(f"{size = }")
+            print(f"{zoom = }")
+            raise exc
+        cv2.imwrite(img_path, img)
+    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
 
-    if single_channel:
-        img = np.sum(img, 2)
-        np.where(img > 255, 255, img)
-        img = img.astype(np.uint8)
+    img = np.sum(img, 2)
+    np.where(img > threshold_valid_pixel, 255, img)
+    img = img.astype(np.uint8)
     return img
 
 class BorderType(Enum):
@@ -147,7 +259,7 @@ def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np
         *args: Arguments for get_road_image.
         **kwargs: Keyword arguments for get_road_image.
     """
-    img = get_road_image(*args, **kwargs)
+    img = get_road_image_rec(*args, **kwargs)
     road_graph = graph.get_graph_from_binary_image((np.sum(img, 2) if len(img.shape) > 2 else img) > 0.5, max_regularization_dist = max_regularization_dist)
     return img, road_graph
 
