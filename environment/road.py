@@ -67,6 +67,19 @@ def upsampling_centers(initial_center, size, zoom, upsampling):
 def get_road_image(center: tuple[float, float], zoom: int,
                     res_zoom_upsample: int = 0, margin_px: int = 10) -> np.ndarray:
     """Stitch several images together to create a single, upsampled, image
+    Zoom + res_zoom_upsample is the zoom level of the resulting image.
+    Road pixel size stays the same for zoom + res_zoom_upsample > 19, which can
+    be problematic for certain applications. 
+    zoom + res_zoom_upsample == 20 has the least noticeable impact.
+
+    Args:
+        center: Center of the road image - latitude and longitude.
+        zoom: Zoom level (google maps standard).
+        res_zoom_upsample: Resolution zoom level (upsampling). 
+        margin_px: Margin of each border in pixels. Useful for applying 
+                morphological operations.
+    Returns:
+        Road image.
     """
     size_img_standard = (400, 400)
     size_w_margin = (size_img_standard[0] + 2*margin_px, size_img_standard[1] + 2*margin_px)
