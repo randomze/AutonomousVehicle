@@ -1,3 +1,12 @@
+% Add `matlab.engine.shareEngine` to `startup.m` file (https://www.mathworks.com/help/matlab/ref/startup.html)
+% - this makes it so whenever matlab opens, its engine becomes available to
+% subsequent python calls using the engine API
+
+% Run sim.py
+
+% Run this script
+
+addpath('matlab_utils\');
 
 x = -12.77;
 y = 60;
