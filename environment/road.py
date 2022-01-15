@@ -133,19 +133,10 @@ def get_road_image_rec(center: tuple[float, float], zoom: int,
     big_img = np.zeros((res_y, res_x), dtype=np.uint8)
     stride_x = size_per_img[0]
     stride_y = size_per_img[1]
-    print(res_x)
-    print(res_y)
     topleft_img = get_road_image_rec(centers[0], zoom+1, res_zoom_upsample-1, margin_px)
     topright_img = get_road_image_rec(centers[1], zoom+1, res_zoom_upsample-1, margin_px)
     bottomleft_img = get_road_image_rec(centers[2], zoom+1, res_zoom_upsample-1, margin_px)
     bottomright_img = get_road_image_rec(centers[3], zoom+1, res_zoom_upsample-1, margin_px)
-    print(f"{res_zoom_upsample = }")
-    print(f"{res_x = }")
-    print(f"{res_y = }")
-    print(f"{size_per_img = }")    
-    print(f"{stride_x = }")
-    print(f"{stride_y = }")
-    print(f"{stride_y = }, {stride_y*2 + 2*margin_px = }")
     big_img[0:stride_x + 2*margin_px, 0:stride_y + 2*margin_px] = topleft_img
     big_img[0:stride_x + 2*margin_px, stride_y:stride_y*2 + 2*margin_px] = topright_img
     big_img[stride_x:stride_x*2 + 2*margin_px, 0:stride_y + 2*margin_px] = bottomleft_img
@@ -266,12 +257,15 @@ def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np
 # btw, run this script from base directory with python -m environment.road
 if __name__ == '__main__':
     #img, graph = get_road_image((38.72, -9.15), 15) #random lisbon place
-    img, r_graph = get_road_info((38.7367256,-9.1388871), 16, max_regularization_dist=20) # ist
+    img, r_graph = get_road_info((38.7367256,-9.1388871), 16, max_regularization_dist=200) # ist
+    # convert to 3 channel image
+    edges = get_edge_img(img)
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     
     img_graph = graph.draw_graph(img, r_graph, transpose=True)
     
     # example demonstrating shortest path calculation
-    source, end = list(r_graph.connections.keys())[1], list(r_graph.connections.keys())[250]
+    source, end = list(r_graph.connections.keys())[1], list(r_graph.connections.keys())[50]
     parents, distances = r_graph.get_mst_dijkstra(source)
     path = r_graph.get_path_from_mst(end, parents, distances)
 
@@ -280,8 +274,9 @@ if __name__ == '__main__':
     print(f"Shortest path length in nodes: {len(path)}")
     print(f"Shortest path length in meters: {r_graph.get_path_cost(path)}")
 
-    img_path = graph.draw_path(img_graph, path, edge_color = (255, 255, 255), node_color = (255, 255, 255), transpose=True)
+    img_path = graph.draw_path(img_graph, path, edge_color = (0, 255, 255), node_color = (0, 255, 255), transpose=True)
 
+    cv2.imshow("edges", edges)
     cv2.imshow('img_path', img_path)
     cv2.imshow('img_graph', img_graph)
     cv2.imshow('original', img)
