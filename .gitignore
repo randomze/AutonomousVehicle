@@ -10,6 +10,12 @@ assets/*
 # images
 *.png
 
+# videos
+*.avi
+*.mp4
+*.webm
+*.mov
+
 # venv things
 pyvenv.cfg
 */Include/*
