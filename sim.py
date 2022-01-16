@@ -28,12 +28,21 @@ car_description = {
 r_name = 'road_img'
 lat, long = (38.7367256,-9.1388871)
 zoom = 16
-upsampling = 3
-road_img, road_graph = road.get_road_info((lat, long), zoom, res_zoom_upsample = upsampling)
+upsampling = 4
 
 road_description = {
     'meters_per_pixel': float(road.zoom_to_scale(zoom + upsampling, lat)),
+    'lat': lat,
+    'long': long,
 }
+eng.workspace['sim_ic'] = sim_initial_conditions
+eng.workspace['car'] = car_description
+eng.workspace['road'] = road_description
+exit(0)
+
+road_img, road_graph = road.get_road_info((lat, long), zoom, res_zoom_upsample = upsampling)
+
+
 
 r_edges_name = 'road_edges'
 r_edges = road.get_edge_img(road_img)
@@ -44,7 +53,10 @@ eng.eval(f'{r_edges_name} = logical({r_edges_name});', nargout=0)
 m_utils.big_var_to_workspace(r_name, road_img)
 eng.eval(f'{r_name} = logical({r_name});', nargout=0)
 
-m_utils.to_workspace(sim_initial_conditions, car_description, road_description)
+
+eng.eval('blocks = load_blocks(road_edges, road.meters_per_pixel);', nargout=0)
+
+#m_utils.to_workspace(sim_initial_conditions, car_description, road_description)
 
 #simout = eng.sim('simulation')
 
