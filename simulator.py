@@ -7,6 +7,8 @@ from model.trajectoryGenerator import TrajectoryGenerator
 import matplotlib.pyplot as plt
 import numpy as np
 
+from visualization.carVisualizer import CarVisualizer
+
 class Simulator:
     def __init__(self, step_size, car_constants, sensorParameters):
         self.step_size = step_size
@@ -15,11 +17,12 @@ class Simulator:
         self.controller = Controller()
         self.sensors = Sensors(sensorParameters)
         self.trajectory_generator = TrajectoryGenerator()
+        self.car_visualizer = CarVisualizer(car_constants)
 
     def simulate(self, initial_conditions, final_time):
         car_state = initial_conditions['car_ic']
         controller_output = np.array([0, 0])
-        sensor_output = np.array([0, 0])
+        sensors_output = np.array([0, 0])
         trajectory_output = np.array([0, 0])
         
         for instant in np.arange(final_time, step=self.step_size):
@@ -31,14 +34,12 @@ class Simulator:
             sensors_input = car_output
             sensors_output = self.sensors.output(instant, sensors_input)
 
-            trajectory_output = self.trajectory_generator.output(instant, )
+            trajectory_output = self.trajectory_generator.output(instant)
             controller_input = [sensors_output, trajectory_output]
             controller_output = self.controller.output(instant, controller_input)
-
-            print(car_derivative)
-            print(car_state)
             # Do some plots
-            self.car_model.plot(instant, car_state, 1)
+
+            self.car_visualizer.plot(car_state)
 
 def CoM_position(m: int, n: int) -> Tuple:
     d = 0.64
@@ -96,7 +97,8 @@ if __name__ == "__main__":
         'M': 800.0,
         'Izz': Izz,
         'r_cm': com_r,
-        'delta_cm': com_delta
+        'delta_cm': com_delta,
+        'wheel_width': 0.1
     }  
     sim = Simulator(0.1, car_constants, None)
 
