@@ -14,7 +14,7 @@ class Simulator:
         self.step_size = step_size
 
         self.car_model = CarModel(car_constants)
-        self.controller = Controller()
+        self.controller = Controller(self.car_model)
         self.sensors = Sensors(sensorParameters)
         self.trajectory_generator = TrajectoryGenerator()
         self.car_visualizer = CarVisualizer(car_constants)
@@ -29,8 +29,15 @@ class Simulator:
             car_input = controller_output
             car_derivative = self.car_model.derivative(instant, car_state, car_input)
             car_state = car_state + car_derivative * self.step_size
-            car_output = self.car_model.output(instant, car_state)
             
+            if car_state[4] < -np.pi/8:
+                car_state[4] = -np.pi/8
+
+            if car_state[4] > np.pi/8:
+                car_state[4] = np.pi/8  
+
+            car_output = self.car_model.output(instant, car_state)
+
             sensors_input = car_output
             sensors_output = self.sensors.output(instant, sensors_input)
 
@@ -58,7 +65,7 @@ def CoM_position(m: int, n: int) -> Tuple:
         com_y += L/2 - (i - 1/2)*L/m
     com_y = com_y / m
 
-    com_r = np.sqrt(com_x ** 2 + com_y**2)
+    com_r = np.sqrt((com_x/Lm) ** 2 + (com_y/Lm)**2)
     com_delta = np.arctan2(com_x, com_y)
 
     return (com_r, com_delta)
@@ -105,6 +112,6 @@ if __name__ == "__main__":
     initial_conditions = {
         'car_ic': np.array([0, 0, 0, 0, 0])
     }
-    sim.simulate(initial_conditions, 10)
+    sim.simulate(initial_conditions, 100)
 
     plt.show()

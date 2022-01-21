@@ -5,5 +5,4 @@ class Sensors:
         pass
 
     def output(self, instant, input):
-        v, theta, x, y, phi = input
-        return np.array([x, y])
+        return input
