@@ -115,7 +115,7 @@ if __name__ == "__main__":
     sim = Simulator(0.1, car_constants, road_constants, None)
 
     initial_conditions = {
-        'car_ic': np.array([0, 0, 0, 10, 10])
+        'car_ic': np.array([0, 0, 0, 0, 0])
     }
     sim.simulate(initial_conditions, 10)
 
