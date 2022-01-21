@@ -14,13 +14,14 @@ class CarVisualizer:
         self.car_length = self.L + self.Lr + self.Lf
         self.car_width = 2 * self.d
 
-    def plot(self, state):
+    def plot(self, state, clf: bool = False, window: tuple = ((-20, 20), (-20, 20)), block: bool = False):
         plt.figure(figure_number)
-        plt.clf()
+        if clf: plt.clf()
+        x, y = state[0], state[1]
         plt.xlabel('X [m]')
         plt.ylabel('Y [m]')
-        plt.xlim([-10, 10])
-        plt.ylim([-10, 10])
+        plt.xlim([window[0][0] + x, window[0][1] + x])
+        plt.ylim([window[1][0] + y, window[1][1] + y])
 
         car_rectangles = self.get_car_representation(state)
 
@@ -28,7 +29,7 @@ class CarVisualizer:
             rectangle = car_rectangles[i*4:i*4+4,:]
             plt.plot(np.append(rectangle[:, 0], rectangle[0, 0]), np.append(rectangle[:, 1], rectangle[0, 1]))
 
-        plt.show()
+        plt.show(block=block)
         plt.pause(0.01)
 
     def get_car_representation(self, state):
