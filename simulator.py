@@ -3,14 +3,16 @@ from model.carModel import CarModel
 from model.controller import Controller
 from model.sensors import Sensors
 from model.trajectoryGenerator import TrajectoryGenerator
+from environment import road
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 from visualization.carVisualizer import CarVisualizer
+from visualization.mapVisualizer import MapVisualizer
 
 class Simulator:
-    def __init__(self, step_size, car_constants, sensorParameters):
+    def __init__(self, step_size, car_constants, map_constants, sensorParameters):
         self.step_size = step_size
 
         self.car_model = CarModel(car_constants)
@@ -18,8 +20,9 @@ class Simulator:
         self.sensors = Sensors(sensorParameters)
         self.trajectory_generator = TrajectoryGenerator()
         self.car_visualizer = CarVisualizer(car_constants)
+        self.map_visualizer = MapVisualizer(map_constants)
 
-    def simulate(self, initial_conditions, final_time):
+    def simulate(self, initial_conditions, final_time, vis_window = ((-20, 20), (-20, 20))):
         car_state = initial_conditions['car_ic']
         controller_output = np.array([0, 0])
         sensors_output = np.array([0, 0])
@@ -45,8 +48,8 @@ class Simulator:
             controller_input = [sensors_output, trajectory_output]
             controller_output = self.controller.output(instant, controller_input)
             # Do some plots
-
-            self.car_visualizer.plot(car_state)
+            self.map_visualizer.plot(car_state, clf=True, window=vis_window)
+            self.car_visualizer.plot(car_state, window=vis_window)
 
 def CoM_position(m: int, n: int) -> Tuple:
     d = 0.64
@@ -88,6 +91,15 @@ def MoI(m: int, n: int) -> float:
     return Izz
 
 if __name__ == "__main__":
+    road_constants = {
+        'lat': 38.7367256,
+        'lon': -9.1388871,
+        'zoom': 16,
+        'upsampling': 3,
+        'regularization': 20,
+    }
+    
+
     plt.ion()
     m = 3
     n = 2
@@ -107,7 +119,7 @@ if __name__ == "__main__":
         'delta_cm': com_delta,
         'wheel_width': 0.1
     }  
-    sim = Simulator(0.1, car_constants, None)
+    sim = Simulator(0.1, car_constants, road_constants, None)
 
     initial_conditions = {
         'car_ic': np.array([0, 0, 0, 0, 0])
