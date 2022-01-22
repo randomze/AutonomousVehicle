@@ -13,6 +13,12 @@ class Controller:
         self.input_horizon = 4
         self.output_horizon = 50
         self.car = car
+        self.position_error_integral = 0
+        self.heading_error_integral = 0
+        self.velocity_error_integral = 0
+        self.last_position_error = 0
+        self.last_heading_error = 0
+        self.last_velocity_error = 0
 
     def output(self, instant, input):
         sensors_output, trajectory_output = input
@@ -27,9 +33,23 @@ class Controller:
                                         [0, -np.sin(heading), np.cos(heading)]])
         error_body_frame = body_frame_rotation @ current_error
 
-        velocity_apply = 0.16 * error_body_frame[1]
-        force_apply = 1000 * (velocity_apply - velocity)
-        steering_apply = 10 * error_body_frame[2] + 0.1 * error_body_frame[0]
+        heading_body_error = np.arctan2(error_body_frame[2], error_body_frame[1]) - sensors_output[4]
+
+        self.position_error_integral += 0.01 * error_body_frame[1]
+        velocity_apply = 0.32 * error_body_frame[1] # + 0.01 * self.position_error_integral + \
+                        # 1 * (error_body_frame[1] - self.last_position_error) / 0.01
+
+        self.velocity_error_integral += 0.01 * (velocity_apply - velocity)
+        force_apply = 1000 * (velocity_apply - velocity) # + 0.01 * self.velocity_error_integral + \
+                        # 1 * (error_body_frame[1] - self.last_velocity_error) / 0.01
+
+        self.heading_error_integral += 0.01 * heading_body_error
+        steering_apply = 10 * heading_body_error # + 0.01 * self.heading_error_integral + \
+                         #0.01 * (error_body_frame[1] - self.last_heading_error) / 0.01
+
+        self.last_position_error = error_body_frame[1]
+        self.last_velocity_error = (velocity_apply - velocity)
+        self.last_heading_error = heading_body_error
 
         return np.array([force_apply, steering_apply])
         # Here lies my attempt at MPC
