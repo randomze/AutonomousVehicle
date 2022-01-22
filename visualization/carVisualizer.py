@@ -18,7 +18,7 @@ class CarVisualizer:
     def plot(self, state, clf: bool = False, window: tuple = ((-20, 20), (-20, 20)), block: bool = False):
         plt.figure(figure_number)
         if clf: plt.clf()
-        x, y = state[0], state[1]
+        x, y = state[2], state[3]
         plt.xlabel('X [m]')
         plt.ylabel('Y [m]')
         plt.xlim([window[0][0] + x, window[0][1] + x])
@@ -30,8 +30,12 @@ class CarVisualizer:
             rectangle = car_rectangles[i*4:i*4+4,:]
             plt.plot(np.append(rectangle[:, 0], rectangle[0, 0]), np.append(rectangle[:, 1], rectangle[0, 1]))
 
+        plt.scatter(10, 10, c='r')
+        plt.scatter(10, 20, c='r')
+        plt.scatter(10, 30, c='r')
+
         plt.show(block=block)
-        plt.pause(0.01)
+        plt.pause(0.001)
 
     def get_car_representation(self, state):
         v, theta, x, y, phi = state
