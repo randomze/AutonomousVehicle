@@ -33,11 +33,11 @@ class Simulator:
             car_derivative = self.car_model.derivative(instant, car_state, car_input)
             car_state = car_state + car_derivative * self.step_size
             
-            if car_state[4] < -np.pi/8:
-                car_state[4] = -np.pi/8
+            if car_state[4] < -np.pi/3:
+                car_state[4] = -np.pi/3
 
-            if car_state[4] > np.pi/8:
-                car_state[4] = np.pi/8  
+            if car_state[4] > np.pi/3:
+                car_state[4] = np.pi/3
 
             car_output = self.car_model.output(instant, car_state)
 
