@@ -3,7 +3,6 @@ from model.carModel import CarModel
 from model.controller import Controller
 from model.sensors import Sensors
 from model.trajectoryGenerator import TrajectoryGenerator
-from environment import road
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,13 +11,13 @@ from visualization.carVisualizer import CarVisualizer
 from visualization.mapVisualizer import MapVisualizer
 
 class Simulator:
-    def __init__(self, step_size, car_constants, map_constants, sensorParameters):
+    def __init__(self, step_size, car_constants, map_constants, sensorParameters, path: tuple):
         self.step_size = step_size
 
         self.car_model = CarModel(car_constants)
         self.controller = Controller(self.car_model)
         self.sensors = Sensors(sensorParameters)
-        self.trajectory_generator = TrajectoryGenerator()
+        self.trajectory_generator = TrajectoryGenerator(map_constants, path)
         self.car_visualizer = CarVisualizer(car_constants)
         self.map_visualizer = MapVisualizer(map_constants)
 
@@ -49,6 +48,7 @@ class Simulator:
             controller_output = self.controller.output(instant, controller_input)
             # Do some plots
             self.map_visualizer.plot(car_state, clf=True, window=vis_window)
+            self.trajectory_generator.plot()
             self.car_visualizer.plot(car_state, window=vis_window)
 
 def CoM_position(m: int, n: int) -> Tuple:
@@ -99,6 +99,8 @@ if __name__ == "__main__":
         'regularization': 20,
     }
     
+    posi = (-5, 10)
+    posf = (-7, 30)
 
     plt.ion()
     m = 3
@@ -119,10 +121,10 @@ if __name__ == "__main__":
         'delta_cm': com_delta,
         'wheel_width': 0.1
     }  
-    sim = Simulator(0.1, car_constants, road_constants, None)
+    sim = Simulator(0.1, car_constants, road_constants, None, (posi, posf))
 
     initial_conditions = {
-        'car_ic': np.array([0, 0, 0, 0, 0])
+        'car_ic': np.array([0, 0, posi[0]-10, posi[1]-10, 0])
     }
     sim.simulate(initial_conditions, 100)
 

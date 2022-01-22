@@ -30,10 +30,6 @@ class CarVisualizer:
             rectangle = car_rectangles[i*4:i*4+4,:]
             plt.plot(np.append(rectangle[:, 0], rectangle[0, 0]), np.append(rectangle[:, 1], rectangle[0, 1]))
 
-        plt.scatter(10, 10, c='r')
-        plt.scatter(10, 20, c='r')
-        plt.scatter(10, 30, c='r')
-
         plt.show(block=block)
         plt.pause(0.001)
 
