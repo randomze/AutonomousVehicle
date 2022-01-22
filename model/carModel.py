@@ -20,8 +20,8 @@ class CarModel:
                 (self.M * np.cos(phi)**2 + (self.r_cm**2 + self.Izz/self.L**2)*np.sin(phi)**2 \
                 - 2 * self.r_cm * np.cos(phi) * np.cos(self.delta_cm))
         theta_dot = v * np.sin(phi) / self.L
-        x_dot = v * np.cos(theta + phi)
-        y_dot = v * np.sin(theta + phi)
+        x_dot = v * np.cos(theta) * np.cos(phi)
+        y_dot = v * np.sin(theta) * np.cos(phi)
         phi_dot = omega_s
 
         # Saturate phi in order not to reach weird stuff
