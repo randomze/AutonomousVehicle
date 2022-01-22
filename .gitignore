@@ -1,3 +1,6 @@
+# Mac Garbage
+.DS_Store
+
 # simulink things
 *.slxc
 slprj*
