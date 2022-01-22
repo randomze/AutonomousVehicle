@@ -5,6 +5,8 @@ import cv2
 import numpy as np
 import requests
 import os
+import pickle
+import hashlib
 
 def retrieve_api_key(key_file_name: str = "api.key", search_pardir = True) -> str:
     """Retrieve Google Maps API key from file.
@@ -207,8 +209,23 @@ def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np
         *args: Arguments for get_road_image.
         **kwargs: Keyword arguments for get_road_image.
     """
+    os.environ['PYTHONHASHSEED'] = '1'
+    cache_dir = "cache"
+    if not os.path.isdir(cache_dir):
+        os.mkdir(cache_dir)
+    item_id = str(args) + str(kwargs)
+    item_id = item_id.encode('utf-8')
+    
+    item_name = str(hashlib.sha224(item_id).hexdigest())
+    if os.path.exists(os.path.join(cache_dir, item_name + ".pkl")):
+        with open(os.path.join(cache_dir, item_name + ".pkl"), "rb") as f:
+            return pickle.load(f)
+
     img = get_road_image(*args, **kwargs)
     road_graph = graph.get_graph_from_binary_image((np.sum(img, 2) if len(img.shape) > 2 else img) > 0.5, max_regularization_dist = max_regularization_dist)
+    with open(os.path.join(cache_dir, item_name + ".pkl"), "wb") as f:
+        pickle.dump((img, road_graph), f)
+
     return img, road_graph
 
 # btw, run this script from base directory with python -m environment.road

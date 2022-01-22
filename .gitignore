@@ -9,6 +9,7 @@ slprj*
 
 
 assets/* 
+cache/
 
 # images
 *.png
