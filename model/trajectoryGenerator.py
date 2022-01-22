@@ -25,27 +25,24 @@ class TrajectoryGenerator:
     def get_xy_path(self, init_point, final_point):
         nodes = list(self.graph.get_all_nodes())
         # invert x and y due to graph implementation
-        init_point = (init_point[1], init_point[0])
-        final_point = (final_point[1], final_point[0])
+        #init_point = (init_point[1], init_point[0])
+        #final_point = (final_point[1], final_point[0])
 
         # get first node as the closest to init_point
-        init_pixel = xy_to_pixel(init_point[0], init_point[1], self.map.shape, self.meters_per_pixel)
-        init_node = nodes[np.argmin([np.linalg.norm(np.array(init_pixel) - np.array(node)) for node in nodes])]
+        init_pixel = xy_to_pixel(*init_point, self.map.shape, self.meters_per_pixel)
+        init_node = nodes[np.argmin([np.linalg.norm(np.array(init_pixel) - np.array((node[1], node[0]))) for node in nodes])]
 
         # get last node as the closest to final_point
-        final_pixel = xy_to_pixel(final_point[0], final_point[1], self.map.shape, self.meters_per_pixel)
-        final_node = nodes[np.argmin([np.linalg.norm(np.array(final_pixel) - np.array(node)) for node in nodes])]
+        final_pixel = xy_to_pixel(*final_point, self.map.shape, self.meters_per_pixel)
+        final_node = nodes[np.argmin([np.linalg.norm(np.array(final_pixel) - np.array((node[1], node[0]))) for node in nodes])]
 
         # get the path from init_node to final_node
         mst = self.graph.get_mst_dijkstra(init_node)
         nodes_to_traverse = self.graph.get_path_from_mst(final_node, *mst)
-        nodes_to_traverse = [(node[0], node[1]) for node in nodes_to_traverse] # not sure why this is needed, but it works
-        points_to_traverse = [pixel_to_xy(node, self.map.shape, self.meters_per_pixel) for node in nodes_to_traverse]
+        points_to_traverse = [pixel_to_xy((node[1], node[0]), self.map.shape, self.meters_per_pixel) for node in nodes_to_traverse]
         points_to_traverse.insert(0, init_point)
         points_to_traverse.append(final_point)
 
-        # again, invert x, y definition due to graph implementation
-        points_to_traverse = [(point[1], point[0]) for point in points_to_traverse]
         return points_to_traverse
 
     def cur_goal_xy(self, instant: float, step: float = 20.0):
@@ -59,6 +56,10 @@ class TrajectoryGenerator:
         if clf: plt.clf()
         for point in self.path:
             plt.scatter(point[0], point[1], color=color)
+
+#        for node in list(self.graph.get_all_nodes()):
+#            point = pixel_to_xy((node[1], node[0]), self.map.shape, self.meters_per_pixel)
+#            plt.scatter( point[0], point[1], color=color)
 
         if self.goal is not None:
             plt.scatter(self.goal[0], self.goal[1], color=cur_color)

@@ -126,6 +126,6 @@ if __name__ == "__main__":
     initial_conditions = {
         'car_ic': np.array([0, 0, posi[0]-10, posi[1]-10, 0])
     }
-    sim.simulate(initial_conditions, 100)
+    sim.simulate(initial_conditions, 100, vis_window=((-20, 20), (-20, 20)))
 
     plt.show()

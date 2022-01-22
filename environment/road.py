@@ -209,7 +209,6 @@ def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np
         *args: Arguments for get_road_image.
         **kwargs: Keyword arguments for get_road_image.
     """
-    os.environ['PYTHONHASHSEED'] = '1'
     cache_dir = "cache"
     if not os.path.isdir(cache_dir):
         os.mkdir(cache_dir)
@@ -231,7 +230,7 @@ def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np
 # btw, run this script from base directory with python -m environment.road
 if __name__ == '__main__':
     #img, graph = get_road_image((38.72, -9.15), 15) #random lisbon place
-    img, r_graph = get_road_info((38.7367256,-9.1388871), 16, max_regularization_dist=200) # ist
+    img, r_graph = get_road_info((38.7367256,-9.1388871), 16, max_regularization_dist=20, res_zoom_upsample=3) # ist
     # convert to 3 channel image
     edges = get_edge_img(img)
     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
