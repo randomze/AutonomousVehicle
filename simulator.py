@@ -22,6 +22,7 @@ class Simulator:
         self.trajectory_generator = TrajectoryGenerator(map_constants, path, time)
         self.car_visualizer = CarVisualizer(car_constants)
         self.map_visualizer = MapVisualizer(map_constants)
+        self.energy_spent = 0
 
         self.cache_dir = os.path.join('cache')
         self.image_dir = os.path.join(self.cache_dir, 'images')
@@ -68,6 +69,10 @@ class Simulator:
             trajectory_output = self.trajectory_generator.output(instant)
             controller_input = [sensors_output, trajectory_output]
             controller_output = self.controller.output(instant, controller_input)
+
+            work_force = self.controller.force_apply if self.controller.force_apply > 0 else 0
+            self.energy_spent += (work_force * car_output[0] 
+                                + self.car_model.idle_power) * self.step_size
             # Do some plots
             self.map_visualizer.plot(car_state, clf=True, window=vis_window)
             self.trajectory_generator.plot()
@@ -125,7 +130,7 @@ if __name__ == "__main__":
     
     posi = (-5, 10)
     posf = (-85, 100)
-    sim_time = 100
+    sim_time = 10
 
     plt.ion()
     m = 3
@@ -145,6 +150,7 @@ if __name__ == "__main__":
         'r_cm': com_r,
         'delta_cm': com_delta,
         'wheel_width': 0.1
+        'idle_power' : 1
     }  
     sim = Simulator(0.1, car_constants, road_constants, None, (posi, posf), sim_time)
     sim.to_video(fps=10)

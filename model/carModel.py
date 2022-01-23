@@ -8,6 +8,7 @@ class CarModel:
         self.r_cm = constants['r_cm']
         self.delta_cm = constants['delta_cm']
         self.Izz = constants['Izz']
+        self.idle_power = constants['idle_power']
         self.plot_x = []
         self.plot_y = []
         
