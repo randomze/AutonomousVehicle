@@ -1,6 +1,6 @@
 import os
 from typing import Tuple
-import cv2
+import imageio
 from model.carModel import CarModel
 from model.controller import Controller
 from model.sensors import Sensors
@@ -29,26 +29,19 @@ class Simulator:
         if not os.path.isdir(self.image_dir): os.mkdir(self.image_dir)
 
     def to_file(self, iter: int):
-        plt.savefig(os.path.join(self.image_dir, f'{iter:04d}.png'), bbox_inches='tight')
+        plt.savefig(os.path.join(self.image_dir, f'{iter:04d}.png'))
     
-    def to_video(self, fps: int, video_name: str = 'simulation.avi'):
+    def to_video(self, fps: int, video_name: str = 'simulation.mp4'):
         images = []
         for filename in os.listdir(self.image_dir):
             if filename.endswith('.png'):
                 images.append(os.path.join(self.image_dir, filename))
         images.sort()
-        frame = cv2.imread(images[0])
-        height, width, layers = frame.shape
-        video = cv2.VideoWriter(video_name, 0, fps, (width, height))
-        
+        writer = imageio.get_writer(video_name, fps=fps)
         for image in images:
-            video.write(cv2.imread(image))
-        
-        cv2.destroyAllWindows()
-        video.release()
-
-        for image in images:
+            writer.append_data(imageio.imread(image))
             os.remove(image)
+        writer.close()
 
     def simulate(self, initial_conditions, final_time, vis_window = ((-20, 20), (-20, 20))):
         car_state = initial_conditions['car_ic']
