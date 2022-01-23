@@ -17,7 +17,7 @@ class Simulator:
         self.step_size = step_size
 
         self.car_model = CarModel(car_constants)
-        self.controller = Controller(self.car_model)
+        self.controller = Controller()
         self.sensors = Sensors(sensorParameters)
         self.trajectory_generator = TrajectoryGenerator(map_constants, path, time)
         self.car_visualizer = CarVisualizer(car_constants)

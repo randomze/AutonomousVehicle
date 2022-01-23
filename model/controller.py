@@ -1,31 +1,53 @@
-from distutils.log import error
-from re import S
+from audioop import cross
 import numpy as np
-import scipy.linalg
-import scipy.optimize
 
 class Controller:
 
-    def __init__(self, car):
-        self.previous_error = np.zeros((3,))
-        self.admissible_forces = np.logspace(1, 5, 13)
-        self.admissible_steers = np.linspace(-np.pi/4, np.pi/4, 9)
-        self.input_horizon = 4
-        self.output_horizon = 50
-        self.car = car
-        self.position_error_integral = 0
-        self.heading_error_integral = 0
-        self.velocity_error_integral = 0
-        self.last_position_error = 0
-        self.last_heading_error = 0
-        self.last_velocity_error = 0
+    def __init__(self):
+        self.current_waypoint = 0
+        self.last_position = None
 
     def output(self, instant, input):
+        # Separate input into components
         sensors_output, trajectory_output = input
-
-        current_error = trajectory_output - sensors_output
+        current_position = sensors_output[2:4]
         heading = sensors_output[1]
-        velocity = sensors_output[0]
+
+        # TODO: fazer isto bem
+        L = 2.2
+
+        # Sum the car's length to the position
+        current_position_fixed = current_position + np.array([L * np.cos(heading), L * np.sin(heading)])
+
+        # Figure out the crossing line
+        if self.current_waypoint == 0:
+            waypoint_difference = trajectory_output[self.current_waypoint] - trajectory_output[self.current_waypoint + 1]
+        else:
+            waypoint_difference = trajectory_output[self.current_waypoint] - trajectory_output[self.current_waypoint - 1]
+
+        # Get only the x,y direction
+        waypoint_difference = waypoint_difference[2:4]
+        waypoint_difference = waypoint_difference / np.linalg.norm(waypoint_difference)
+        # Get the direction of the line orthogonal to the line uniting the two waypoints
+        orthogonal_vector = np.array([-waypoint_difference[1], waypoint_difference[0]])
+        orthogonal_vector = orthogonal_vector / np.linalg.norm(orthogonal_vector)
+
+        # Convert last position and current position into this crossing lines frame
+        if not self.last_position is None:
+            crossing_frame_matrix = np.array([[waypoint_difference[0], orthogonal_vector[0]],
+                                              [waypoint_difference[1], orthogonal_vector[1]]])
+            last_position_crossing = crossing_frame_matrix @ (self.last_position - trajectory_output[self.current_waypoint][2:4])
+            current_position_crossing = crossing_frame_matrix @ (current_position_fixed - trajectory_output[self.current_waypoint][2:4])
+
+            # Check if between steps the car crossed the waypoint
+            if last_position_crossing[0] * current_position_crossing[0] < 0:
+                self.current_waypoint += 1
+
+        self.last_position = current_position_fixed
+
+        current_waypoint = trajectory_output[self.current_waypoint]
+        current_error = current_waypoint - sensors_output
+        velocity_error = current_error[0]
         current_error = current_error[1:4]
 
         body_frame_rotation = np.array([[1, 0, 0],
@@ -35,64 +57,8 @@ class Controller:
 
         heading_body_error = np.arctan2(error_body_frame[2], error_body_frame[1]) - sensors_output[4]
 
-        self.position_error_integral += 0.01 * error_body_frame[1]
-        velocity_apply = 0.32 * error_body_frame[1] # + 0.01 * self.position_error_integral + \
-                        # 1 * (error_body_frame[1] - self.last_position_error) / 0.01
+        force_apply = 1000 * velocity_error
 
-        self.velocity_error_integral += 0.01 * (velocity_apply - velocity)
-        force_apply = 1000 * (velocity_apply - velocity) # + 0.01 * self.velocity_error_integral + \
-                        # 1 * (error_body_frame[1] - self.last_velocity_error) / 0.01
-
-        self.heading_error_integral += 0.01 * heading_body_error
-        steering_apply = 10 * heading_body_error # + 0.01 * self.heading_error_integral + \
-                         #0.01 * (error_body_frame[1] - self.last_heading_error) / 0.01
-
-        self.last_position_error = error_body_frame[1]
-        self.last_velocity_error = (velocity_apply - velocity)
-        self.last_heading_error = heading_body_error
+        steering_apply = 10 * heading_body_error
 
         return np.array([force_apply, steering_apply])
-        # Here lies my attempt at MPC
-        horizon = 50
-        trajectory_output = np.append(trajectory_output, np.array([0, 0]))
-        trajectory = np.tile(trajectory_output, (horizon,))
-
-        initial_variable = np.append(sensors_output, np.array([0, 0]))
-        optimization_variable = np.tile(initial_variable, (horizon,))
-        big_lambda = np.zeros((horizon * 5,))
-
-        def big_f(big_variables):
-            big_f = np.empty((horizon * 5,))
-            big_f[:5] = sensors_output - big_variables[:5]
-            for i in range(1, horizon):
-                big_f[i*5:(i+1)*5] = 0.01 * self.car.derivative(0, big_variables[i*7:i*7 + 5],
-                                                              big_variables[i*7 + 5:i*7 + 7]) - big_variables[i*7: i*7 + 5]
-            return big_f
-
-        def derivative_big_f(big_variables):
-            derivatives = []
-            for i in range(1, horizon):
-                derivatives += [0.01 * self.car.derivative_jacobian(0, big_variables[i*7:i*7 + 5],
-                                                             big_variables[i*7 + 5:i*7 + 7])]
-
-            derivatives = scipy.linalg.block_diag(*derivatives)
-            custom_block = np.block([-np.eye(5), np.zeros((5, 2))])
-            derivatives = np.block([[custom_block, np.zeros((5, (horizon-1)*7))],
-                                    [derivatives, np.zeros(((horizon-1)*5, 7))]])
-            return derivatives
-
-        mu = 1e2
-        def optimization_function(big_variables):
-            return (big_variables - trajectory) + (mu * big_f(big_variables).T + big_lambda.T) @ derivative_big_f(big_variables)
-
-        tol = 1
-        first = True
-        #while first or np.linalg.norm(big_f(optimization_variable)) > tol:
-        optimization_variable = scipy.optimize.fsolve(optimization_function, optimization_variable)
-        big_lambda = big_lambda + mu * big_f(optimization_variable)
-        first = False
-
-        return optimization_variable[5:7]
-        
-
-
