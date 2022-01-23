@@ -1,4 +1,6 @@
+import os
 from typing import Tuple
+import cv2
 from model.carModel import CarModel
 from model.controller import Controller
 from model.sensors import Sensors
@@ -11,15 +13,42 @@ from visualization.carVisualizer import CarVisualizer
 from visualization.mapVisualizer import MapVisualizer
 
 class Simulator:
-    def __init__(self, step_size, car_constants, map_constants, sensorParameters, path: tuple):
+    def __init__(self, step_size, car_constants, map_constants, sensorParameters, path: tuple, time: float):
         self.step_size = step_size
 
         self.car_model = CarModel(car_constants)
         self.controller = Controller(self.car_model)
         self.sensors = Sensors(sensorParameters)
-        self.trajectory_generator = TrajectoryGenerator(map_constants, path)
+        self.trajectory_generator = TrajectoryGenerator(map_constants, path, time)
         self.car_visualizer = CarVisualizer(car_constants)
         self.map_visualizer = MapVisualizer(map_constants)
+
+        self.cache_dir = os.path.join('cache')
+        self.image_dir = os.path.join(self.cache_dir, 'images')
+        if not os.path.isdir(self.cache_dir): os.mkdir(self.cache_dir)
+        if not os.path.isdir(self.image_dir): os.mkdir(self.image_dir)
+
+    def to_file(self, iter: int):
+        plt.savefig(os.path.join(self.image_dir, f'{iter:04d}.png'), bbox_inches='tight')
+    
+    def to_video(self, fps: int, video_name: str = 'simulation.avi'):
+        images = []
+        for filename in os.listdir(self.image_dir):
+            if filename.endswith('.png'):
+                images.append(os.path.join(self.image_dir, filename))
+        images.sort()
+        frame = cv2.imread(images[0])
+        height, width, layers = frame.shape
+        video = cv2.VideoWriter(video_name, 0, fps, (width, height))
+        
+        for image in images:
+            video.write(cv2.imread(image))
+        
+        cv2.destroyAllWindows()
+        video.release()
+
+        for image in images:
+            os.remove(image)
 
     def simulate(self, initial_conditions, final_time, vis_window = ((-20, 20), (-20, 20))):
         car_state = initial_conditions['car_ic']
@@ -50,6 +79,8 @@ class Simulator:
             self.map_visualizer.plot(car_state, clf=True, window=vis_window)
             self.trajectory_generator.plot()
             self.car_visualizer.plot(car_state, window=vis_window)
+            self.to_file(int(instant/self.step_size))
+        self.to_video(fps=int(1/self.step_size))
 
 def CoM_position(m: int, n: int) -> Tuple:
     d = 0.64
@@ -100,7 +131,8 @@ if __name__ == "__main__":
     }
     
     posi = (-5, 10)
-    posf = (-7, 30)
+    posf = (-85, 100)
+    sim_time = 100
 
     plt.ion()
     m = 3
@@ -121,11 +153,12 @@ if __name__ == "__main__":
         'delta_cm': com_delta,
         'wheel_width': 0.1
     }  
-    sim = Simulator(0.1, car_constants, road_constants, None, (posi, posf))
+    sim = Simulator(0.1, car_constants, road_constants, None, (posi, posf), sim_time)
+    sim.to_video(fps=10)
 
     initial_conditions = {
         'car_ic': np.array([0, 0, posi[0]-10, posi[1]-10, 0])
     }
-    sim.simulate(initial_conditions, 100, vis_window=((-20, 20), (-20, 20)))
+    sim.simulate(initial_conditions, sim_time, vis_window=((-20, 20), (-20, 20)))
 
     plt.show()
