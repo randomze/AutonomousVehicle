@@ -76,7 +76,7 @@ class TrajectoryGenerator:
 
         state = self.states[self.last_time_query_idx]
         self.goal = state[2:4]
-        return state
+        return self.states
 
 def get_entire_distance(positions: np.ndarray):
     distance = np.zeros(positions.shape[0])
