@@ -212,7 +212,7 @@ def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np
     cache_dir = "cache"
     if not os.path.isdir(cache_dir):
         os.mkdir(cache_dir)
-    item_id = str(args) + str(kwargs)
+    item_id = str(args) + str(kwargs) + str(max_regularization_dist)
     item_id = item_id.encode('utf-8')
     
     item_name = str(hashlib.sha224(item_id).hexdigest())
