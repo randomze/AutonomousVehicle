@@ -58,8 +58,7 @@ class TrajectoryGenerator:
     def plot(self, clf: bool = False, block: bool = False, color ='r', cur_color = 'b'):
         plt.figure(figure_number)
         if clf: plt.clf()
-        for point in self.path:
-            plt.scatter(point[0], point[1], color=color)
+        plt.scatter(self.path[:, 0], self.path[:, 1], color=color)
 
         plt.show(block=block)
 
