@@ -5,7 +5,7 @@ from visualization.utils import pixel_to_xy, xy_to_pixel, figure_number
 
 class TrajectoryGenerator:
 
-    def __init__(self, road_constants: dict, path: tuple, time: float):
+    def __init__(self, road_constants: dict, path: tuple, time: float, smoothen_window: int):
         self.lat = road_constants['lat']
         self.lon = road_constants['lon']
         self.zoom = road_constants['zoom']
@@ -19,11 +19,30 @@ class TrajectoryGenerator:
         self.meters_per_pixel = road.zoom_to_scale(self.zoom + self.upsampling, self.lat)
         
         self.path = np.array(self.get_xy_path(*path))
+        # Smoothen path in order to avoid sharp turns
+        self.path = self.__smoothen_path(self.path, smoothen_window)
+
         self.states = None
         self.goal_states(time)
 
+
         self.last_time_query_idx = 0
 
+    def __smoothen_path(self, path: np.ndarray, smoothen_window: int):
+        '''Takes a path and smoothens it using a low pass filter
+
+        path: original path to be smoothened
+        smoothen_window: radius of the smoothening low pass filter window
+
+        returns: smoothened path
+        '''
+        smooth_path = np.empty_like(path)
+        for point_idx, point in enumerate(path):
+            window_indices = np.arange(start=max(0, point_idx - smoothen_window),
+                                       stop=min(point_idx + smoothen_window + 1, path.shape[0]))
+            smooth_path[point_idx, :] = np.average(path[window_indices, :], axis=0)
+
+        return smooth_path
 
     def get_xy_path(self, init_point, final_point):
         nodes = list(self.graph.get_all_nodes())

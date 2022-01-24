@@ -19,7 +19,7 @@ class Simulator:
         self.car_model = CarModel(car_constants)
         self.controller = Controller()
         self.sensors = Sensors(sensorParameters)
-        self.trajectory_generator = TrajectoryGenerator(map_constants, path, time)
+        self.trajectory_generator = TrajectoryGenerator(map_constants, path, time, 5)
         self.car_visualizer = CarVisualizer(car_constants)
         self.map_visualizer = MapVisualizer(map_constants)
         self.energy_spent = 0
