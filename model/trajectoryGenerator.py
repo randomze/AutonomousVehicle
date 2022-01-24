@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize
+import scipy.signal
 from environment import road, graph
 from visualization.utils import pixel_to_xy, xy_to_pixel
 
@@ -37,8 +38,8 @@ class TrajectoryGenerator:
 
         returns: smoothened path
         '''
-        kernel = np.ones((2*smoothen_window + 1)) / (2*smoothen_window + 1)
-        smooth_path = np.convolve(path, kernel, mode='same')
+        kernel = np.ones((2*smoothen_window + 1, 1)) / (2*smoothen_window + 1)
+        smooth_path = scipy.signal.convolve2d(path, kernel, mode='same', boundary='symm')
 
         return smooth_path
 
