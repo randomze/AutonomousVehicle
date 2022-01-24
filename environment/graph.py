@@ -1,5 +1,8 @@
+import os
 import numpy as np
 import cv2
+import pickle
+import hashlib
 
 class WeightedGraph:
     def __init__(self):
@@ -55,6 +58,21 @@ class WeightedGraph:
         self.remove_connection(node1, middle_node)
         self.remove_connection(node2, middle_node)
     def get_mst_dijkstra(self, source):
+        
+        # hash self and source to get a unique key
+        item_id = str(self) + str(source)
+        item_id = item_id.encode('utf-8')        
+        item_name = str(hashlib.sha224(item_id).hexdigest())
+
+        cache_dir = os.path.join('cache', 'mst_dijkstra')
+        if not os.path.isdir(cache_dir):
+            os.mkdir(cache_dir)
+        cache_file = os.path.join(cache_dir, item_name)
+        if os.path.isfile(cache_file): # pickle file exists
+            with open(cache_file, 'rb') as f:
+                return pickle.load(f)
+
+
         # mark all nodes as unvisited
         unvisited_set = list(self.get_all_nodes())
         # initialize the tentative distance to all nodes as infinity
@@ -82,6 +100,10 @@ class WeightedGraph:
             if len(unvisited_set) == 0: break
             # find the node with the smallest tentative distance
             current_node = min(unvisited_set, key=lambda node: tentative_distances[node])
+        
+        # pickle the results
+        with open(cache_file, 'wb') as f:
+            pickle.dump((parents, tentative_distances), f)
         return parents, tentative_distances
     def get_path_from_mst(self, end_node, parents, distances):
         if distances[end_node] == float('inf'):
