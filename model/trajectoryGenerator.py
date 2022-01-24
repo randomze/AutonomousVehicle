@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.optimize
 from environment import road, graph
 from visualization.utils import pixel_to_xy, xy_to_pixel
 
@@ -66,9 +67,89 @@ class TrajectoryGenerator:
         return points_to_traverse
 
     def goal_states(self, total_time: float, vel_multiplier: float = 1.0):
-        velocities = vel_multiplier*np.ones(self.path.shape[0])*get_entire_distance(self.path)/total_time
-        velocities[-1] = 0
+        distances = get_distances(self.path)
         thetas = get_angles(self.path)
+
+        link_length = 10
+        max_speed = 30
+        min_speed = 7
+        E_budget = 1000
+
+        link_lengths = []
+        max_speeds = []
+        link_index = 0
+
+        current_distance = 0
+        current_curve = 0
+        last_angle = 0
+        for index in range(self.path.shape[0]):
+            current_distance += distances[index]
+            current_curve += thetas[index] - last_angle
+            last_angle = thetas[index]
+            if current_distance > link_length:
+                link_lengths += [current_distance]
+
+                current_curve = np.abs(current_curve) % 2*np.pi
+                max_speed = (max_speed * (2*np.pi - current_curve) + min_speed * current_curve) / (2*np.pi)
+
+                max_speeds += [max_speed]
+                current_distance = 0
+                current_curve = 0
+
+        link_lengths = np.array(link_lengths)
+        max_speeds = np.array(max_speeds)
+        min_speeds = np.ones_like(max_speeds) * 1e-6
+        v_i = 10
+        v_f = 0
+
+        M = 810
+        N = len(link_lengths)
+
+        def fun(m_v):
+            v = np.block([v_i, m_v, v_f])
+
+            avg_v = (v[:-1]+v[1:])/2
+            t = np.divide(link_length, avg_v)
+            f = t.sum()
+            
+            # print(f"\tv {v}\n\tavg {avg_v})\n\tf {f}")
+            return f
+
+        def total_E_spent(m_v):
+            v = np.block([v_i, m_v, v_f])
+
+            v_sqr = v**2
+            dif = (v_sqr[1:] - v_sqr[:-1])
+            
+            # print(dif)
+            # braking does not recuperate energy
+            dif = dif[dif>0]
+            # print(dif)
+            return M*dif.sum()/2
+
+        cons = ({'type': 'eq', 'fun': lambda m_v: total_E_spent(m_v) - E_budget})
+        # each velocity must respect the min and max limits of both its neighbor paths
+        bnds = [(max(min_speeds[i], min_speeds[i+1]), min(max_speeds[i], max_speeds[i+1])) for i in range(N-1)]
+
+        ini_v = np.ones(N-1)
+
+        sol = scipy.optimize.minimize(fun, ini_v, method='SLSQP', bounds=bnds,  constraints=cons)
+
+        velocities = np.empty(self.path.shape[0])
+        current_distance = 0
+        current_link = 0
+        for index, segment in enumerate(distances):
+            if index == 0:
+                velocities[index] = v_i
+            elif current_link == N - 1:
+                velocities[index] = v_f
+            else:
+                velocities[index] = sol.x[current_link]
+                current_distance += segment
+                if current_distance >= link_lengths[current_link]:
+                    current_distance = 0
+                    current_link += 1
+
         positions = self.path
         phis = np.zeros(self.path.shape[0])
 
@@ -85,6 +166,13 @@ def get_entire_distance(positions: np.ndarray):
 
     return np.sum(distance)
 
+def get_distances(positions: np.ndarray):
+    distance = np.zeros(positions.shape[0])
+
+    for i in range(1, positions.shape[0]):
+        distance[i] = np.linalg.norm(positions[i] - positions[i-1])
+
+    return distance
 def get_angles(positions: np.ndarray):
     angles = np.zeros(positions.shape[0])
 

@@ -177,8 +177,8 @@ if __name__ == "__main__":
     }
     
     posi = (-5, 10)
-    posf = (-235, 245)
-    sim_time = 10
+    posf = (-85, 100)
+    sim_time = 100
     step = 0.05
 
     view_sim_realtime = True
