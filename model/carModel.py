@@ -35,6 +35,11 @@ class CarModel:
         phi_dot = omega_s
 
         # Saturate phi in order not to reach weird stuff
+        if phi_dot < -np.pi/3:
+            phi_dot = -np.pi/3
+
+        if phi_dot > np.pi/3:
+            phi_dot = np.pi/3
 
         return np.array([v_cm_dot, theta_dot, x_dot, y_dot, phi_dot])
 

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize
 from environment import road, graph
-from visualization.utils import pixel_to_xy, xy_to_pixel, figure_number
+from visualization.utils import pixel_to_xy, xy_to_pixel
 
 class TrajectoryGenerator:
 
@@ -151,14 +151,6 @@ class TrajectoryGenerator:
         phis = np.zeros(self.path.shape[0])
 
         self.states = np.column_stack((velocities, thetas, positions, phis))
-
-
-    def plot(self, clf: bool = False, block: bool = False, color ='r', cur_color = 'b'):
-        plt.figure(figure_number)
-        if clf: plt.clf()
-        plt.scatter(self.path[:, 0], self.path[:, 1], color=color)
-
-        plt.show(block=block)
 
     def output(self, instant):
         return self.states

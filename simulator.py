@@ -1,13 +1,16 @@
 import os
+import time
+import copy
+import threading
 from typing import Tuple
 import imageio
 from model.carModel import CarModel
 from model.controller import Controller
 from model.sensors import Sensors
 from model.trajectoryGenerator import TrajectoryGenerator
-
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.integrate import solve_ivp
 
 from visualization.carVisualizer import CarVisualizer
 from visualization.mapVisualizer import MapVisualizer
@@ -29,10 +32,27 @@ class Simulator:
         if not os.path.isdir(self.cache_dir): os.mkdir(self.cache_dir)
         if not os.path.isdir(self.image_dir): os.mkdir(self.image_dir)
 
-    def to_file(self, iter: int):
-        plt.savefig(os.path.join(self.image_dir, f'{iter:04d}.png'))
+        self.img_saving_threads = []
+
+    def to_file(self, iter: int, threaded: bool = False):
+        if threaded: # doesn't work. variation might?
+            # get current figure, copy it, and save the figure using separate thread
+            fig = copy.deepcopy(plt.gcf())
+            
+            def func(figure, path):
+                figure.canvas.flush_events()
+                figure.savefig(path)
+
+            args = (fig, os.path.join(self.image_dir, f'{iter:04d}.png'))
+            thread = threading.Thread(target=func, args=args)
+            thread.start()
+            self.img_saving_threads.append(thread)
+        else:
+            plt.savefig(os.path.join(self.image_dir, f'{iter:04d}.png'))
     
     def to_video(self, fps: int, video_name: str = 'simulation.mp4'):
+        for thread in self.img_saving_threads:
+            thread.join()
         images = []
         for filename in os.listdir(self.image_dir):
             if filename.endswith('.png'):
@@ -44,41 +64,66 @@ class Simulator:
             os.remove(image)
         writer.close()
 
-    def simulate(self, initial_conditions, final_time, vis_window = ((-20, 20), (-20, 20))):
+    def simulate(self, initial_conditions, final_time, vis_window = ((-20, 20), (-20, 20)), real_time = False):
         car_state = initial_conditions['car_ic']
         controller_output = np.array([0, 0])
         sensors_output = np.array([0, 0])
         trajectory_output = np.array([0, 0])
         
-        for instant in np.arange(final_time, step=self.step_size):
-            car_input = controller_output
-            car_derivative = self.car_model.derivative(instant, car_state, car_input)
-            car_state = car_state + car_derivative * self.step_size
-            
-            if car_state[4] < -np.pi/3:
-                car_state[4] = -np.pi/3
+        fig = plt.figure()
+        ax: plt.Axes = fig.add_subplot(111)
+        fig.canvas.draw()
+        plt.show(block=False)
+        ax.set_xlabel('X [m]')
+        ax.set_ylabel('Y [m]')
+        self.map_visualizer.plot(ax)
 
-            if car_state[4] > np.pi/3:
-                car_state[4] = np.pi/3
+        ti = time.time()
+        try:
+            for instant in np.arange(final_time, step=self.step_size):
+                t0 = time.time()
+                car_input = controller_output
+                #car_derivative = self.car_model.derivative(instant, car_state, car_input)
+                #car_state = car_state + car_derivative * self.step_size
+                
+                car_state = solve_ivp(self.car_model.derivative, (instant, instant + self.step_size), car_state, args=(car_input,), method='RK45').y[:,-1]
+                
+                
+                car_output = self.car_model.output(instant, car_state)
 
-            car_output = self.car_model.output(instant, car_state)
+                sensors_input = car_output
+                sensors_output = self.sensors.output(instant, sensors_input)
 
-            sensors_input = car_output
-            sensors_output = self.sensors.output(instant, sensors_input)
+                trajectory_output = self.trajectory_generator.output(instant)
+                controller_input = [sensors_output, trajectory_output]
+                controller_output = self.controller.output(instant, controller_input)
 
-            trajectory_output = self.trajectory_generator.output(instant)
-            controller_input = [sensors_output, trajectory_output]
-            controller_output = self.controller.output(instant, controller_input)
+                work_force = self.controller.force_apply if self.controller.force_apply > 0 else 0
+                self.energy_spent += (work_force * car_output[0] 
+                                    + self.car_model.idle_power) * self.step_size
+                
+                self.car_visualizer.set_state(car_state)
 
-            work_force = self.controller.force_apply if self.controller.force_apply > 0 else 0
-            self.energy_spent += (work_force * car_output[0] 
-                                + self.car_model.idle_power) * self.step_size
-            # Do some plots
-            self.map_visualizer.plot(car_state, clf=True, window=vis_window)
-            #self.trajectory_generator.plot()
-            self.controller.plot()
-            self.car_visualizer.plot(car_state, window=vis_window)
-            self.to_file(int(instant/self.step_size))
+                # Do some plots
+                t1 = time.time()
+                self.controller.plot(ax)
+                self.car_visualizer.plot(ax)
+
+                x, y = car_state[2:4]
+                ax.set_xlim([vis_window[0][0] + x, vis_window[0][1] + x])
+                ax.set_ylim([vis_window[1][0] + y, vis_window[1][1] + y])
+
+                t2 = time.time()
+                if real_time:
+                    fig.canvas.flush_events()
+
+                t3 = time.time()
+                self.to_file(int(instant/self.step_size))
+                t4 = time.time()
+                print(f' {t1-t0:.2f} - {t2-t1:.2f} - {t3-t2:.2f} - {t4-t3:.2f} - total: {t4-t0:.2f}  {instant:.2f}/{final_time:.2f} s ({(instant+self.step_size)/final_time*100:.2f}%) real time: {time.time() - ti:.2f}', end='\n')
+        except:
+            self.to_video(fps=int(1/self.step_size))
+            raise
         self.to_video(fps=int(1/self.step_size))
 
 def CoM_position(m: int, n: int) -> Tuple:
@@ -132,8 +177,12 @@ if __name__ == "__main__":
     posi = (-5, 10)
     posf = (-85, 100)
     sim_time = 100
+    step = 0.1
 
-    plt.ion()
+    view_sim_realtime = True # setting to false halves execution time. images can be seen in folder
+
+    goal_crossing_distance = -3.2
+
     m = 3
     n = 2
     com_r, com_delta = CoM_position(m, n)
@@ -153,12 +202,9 @@ if __name__ == "__main__":
         'wheel_width': 0.1,
         'idle_power' : 1
     }  
-    sim = Simulator(0.1, car_constants, road_constants, None, (posi, posf), sim_time)
-    sim.to_video(fps=10)
+    sim = Simulator(step, car_constants, road_constants, None, (posi, posf), sim_time, goal_crossing_distance=goal_crossing_distance)
 
     initial_conditions = {
         'car_ic': np.array([0, 0, posi[0]-10, posi[1]-10, 0])
     }
-    sim.simulate(initial_conditions, sim_time, vis_window=((-20, 20), (-20, 20)))
-
-    plt.show()
+    sim.simulate(initial_conditions, sim_time, vis_window=((-20, 20), (-20, 20)), real_time=view_sim_realtime)

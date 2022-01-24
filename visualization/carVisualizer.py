@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from .utils import get_rectangle_corners, figure_number
+from .utils import get_rectangle_corners
 
 class CarVisualizer:
     def __init__(self, car_constants):
@@ -15,23 +15,24 @@ class CarVisualizer:
         self.car_width = 2 * self.d
         self.frame = 0
 
-    def plot(self, state, clf: bool = False, window: tuple = ((-20, 20), (-20, 20)), block: bool = False):
-        plt.figure(figure_number)
-        if clf: plt.clf()
-        x, y = state[2], state[3]
-        plt.xlabel('X [m]')
-        plt.ylabel('Y [m]')
-        plt.xlim([window[0][0] + x, window[0][1] + x])
-        plt.ylim([window[1][0] + y, window[1][1] + y])
+        self.state = None
+        self.lines = []
 
-        car_rectangles = self.get_car_representation(state)
+    def set_state(self, state):
+        self.state = state
 
+    def plot(self, ax: plt.Axes):
+        car_rectangles = self.get_car_representation(self.state)
+        if len(self.lines) == 0:
+            for i in range(4):
+                rectangle = car_rectangles[i*4:i*4+4,:]
+                line, = ax.plot(np.append(rectangle[:, 0], rectangle[0, 0]), np.append(rectangle[:, 1], rectangle[0, 1]))
+                self.lines.append(line)
+            return
         for i in range(4):
             rectangle = car_rectangles[i*4:i*4+4,:]
-            plt.plot(np.append(rectangle[:, 0], rectangle[0, 0]), np.append(rectangle[:, 1], rectangle[0, 1]))
+            self.lines[i].set_data(np.append(rectangle[:, 0], rectangle[0, 0]), np.append(rectangle[:, 1], rectangle[0, 1]))
 
-        plt.show(block=block)
-        plt.pause(0.001)
 
     def get_car_representation(self, state):
         v, theta, x, y, phi = state

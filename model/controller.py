@@ -1,4 +1,3 @@
-from visualization.utils import figure_number
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -9,6 +8,8 @@ class Controller:
         self.trajectory = None
         self.last_position = None
         self.follower = WaypointFollower(goal_crossing_threshold=goal_crossing_distance)
+
+        self.lines = []
 
     def output(self, instant, input):
         # Separate input into components
@@ -40,12 +41,10 @@ class Controller:
 
         return np.array([self.force_apply, steering_apply])
 
-    def plot(self, clf: bool = False, waypoint_window_lims: tuple = (10, 10), cur_color: str = 'r', nei_color: str = 'b'):
+    def plot(self, ax: plt.Axes, waypoint_window_lims: tuple = (10, 10), cur_color: str = 'r', nei_color: str = 'b'):
         """Plot current waypoint and neighbors
         """
-        
-        if self.trajectory is None: return None
-        if clf: plt.clf()
+        if self.trajectory is None: return
 
         path = self.trajectory[:, 2:4]
         following_waypoint = path[self.current_waypoint]
@@ -53,11 +52,16 @@ class Controller:
             max(self.current_waypoint - waypoint_window_lims[0], 0),
             min(self.current_waypoint + waypoint_window_lims[1], len(path))
         ])
-        plt.figure(figure_number)
 
-        plt.scatter(path[wp_plt[0]:wp_plt[1], 0], path[wp_plt[0]:wp_plt[1], 1], color=cur_color)
-        plt.scatter(following_waypoint[0], following_waypoint[1], color=nei_color)
+        if len(self.lines) == 0:
+            line, = ax.plot(path[wp_plt[0]:wp_plt[1], 0], path[wp_plt[0]:wp_plt[1], 1], color=cur_color)
+            self.lines.append(line)
+            line, = ax.plot(following_waypoint[0], following_waypoint[1], color=nei_color, marker='o')
+            self.lines.append(line)
+            return
 
+        self.lines[0].set_data(path[wp_plt[0]:wp_plt[1], 0], path[wp_plt[0]:wp_plt[1], 1])
+        self.lines[1].set_data(following_waypoint[0], following_waypoint[1])
 
 class WaypointFollower:
     """From a given path, keep a representation of the progress of the car 
@@ -74,13 +78,9 @@ class WaypointFollower:
         if path_b not in self.goal: # don't know this path, add it and start following
             self.goal[path_b] = 0
 
-        if self.goal[path_b] is None: # already reached the end of this path
-            return None
-        
         while self.crossed_goal(path, current_position):
             if self.goal[path_b] == len(path) - 1:
-                self.goal[path_b] = None
-                return None
+                return self.goal[path_b]
             self.goal[path_b] += 1
 
         return self.goal[path_b]
