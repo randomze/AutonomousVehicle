@@ -1,17 +1,19 @@
-from audioop import cross
-from visualization.utils import State
+from visualization.utils import figure_number
+import matplotlib.pyplot as plt
 import numpy as np
 
 class Controller:
 
-    def __init__(self):
+    def __init__(self, goal_crossing_distance: float = -1):
         self.current_waypoint = 0
+        self.trajectory = None
         self.last_position = None
-        self.follower = WaypointFollower()
+        self.follower = WaypointFollower(goal_crossing_threshold=goal_crossing_distance)
 
     def output(self, instant, input):
         # Separate input into components
         sensors_output, trajectory_output = input
+        self.trajectory = trajectory_output
         current_position = sensors_output[2:4]
         heading = sensors_output[1]
 
@@ -20,8 +22,8 @@ class Controller:
         # Sum the car's length to the position
         current_position_fixed = current_position + np.array([L * np.cos(heading), L * np.sin(heading)])
 
-        current_waypoint = trajectory_output[self.follower.next_waypoint(trajectory_output[:, 2:4], current_position_fixed)]
-        current_error = current_waypoint - sensors_output
+        self.current_waypoint = self.follower.next_waypoint(trajectory_output[:, 2:4], current_position_fixed)
+        current_error = trajectory_output[self.current_waypoint] - sensors_output
         velocity_error = current_error[0]
         current_error = current_error[1:4]
 
@@ -38,13 +40,32 @@ class Controller:
 
         return np.array([self.force_apply, steering_apply])
 
+    def plot(self, clf: bool = False, waypoint_window_lims: tuple = (10, 10), cur_color: str = 'r', nei_color: str = 'b'):
+        """Plot current waypoint and neighbors
+        """
+        
+        if self.trajectory is None: return None
+        if clf: plt.clf()
+
+        path = self.trajectory[:, 2:4]
+        following_waypoint = path[self.current_waypoint]
+        wp_plt = np.array([
+            max(self.current_waypoint - waypoint_window_lims[0], 0),
+            min(self.current_waypoint + waypoint_window_lims[1], len(path))
+        ])
+        plt.figure(figure_number)
+
+        plt.scatter(path[wp_plt[0]:wp_plt[1], 0], path[wp_plt[0]:wp_plt[1], 1], color=cur_color)
+        plt.scatter(following_waypoint[0], following_waypoint[1], color=nei_color)
+
 
 class WaypointFollower:
     """From a given path, keep a representation of the progress of the car 
     along that path, allowing estimating the current waypoint to follow.
     """
-    def __init__(self):
+    def __init__(self, goal_crossing_threshold: float = 0):
         self.goal = {} # index of current waypoint to follow for each path
+        self.goal_crossing_threshold = goal_crossing_threshold
     
     def next_waypoint(self, path: np.ndarray, current_position: np.ndarray):
         """Returns the next waypoint to follow for the given path and current position.
@@ -70,7 +91,9 @@ class WaypointFollower:
             goals_vec = path[self.goal[path_b]] - path[self.goal[path_b]-1] 
         else:
             goals_vec = path[self.goal[path_b]+1] - path[self.goal[path_b]]
+        goals_vec = goals_vec / np.linalg.norm(goals_vec)
         car_vec = current_position - path[self.goal[path_b]]
 
-        return np.dot(goals_vec, car_vec) > 0
+        # project car_vec onto goals_vec
+        return np.dot(goals_vec, car_vec) > self.goal_crossing_threshold
 
