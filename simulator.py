@@ -16,8 +16,9 @@ from visualization.carVisualizer import CarVisualizer
 from visualization.mapVisualizer import MapVisualizer
 
 class Simulator:
-    def __init__(self, step_size, car_constants, map_constants, sensorParameters, path: tuple, time: float, goal_crossing_distance: float = -1):
-        self.step_size = step_size
+    def __init__(self, step_size_plot, step_size_sim, car_constants, map_constants, sensorParameters, path: tuple, time: float, goal_crossing_distance: float = -1):
+        self.step_size_plot = step_size_plot
+        self.step_size_sim = step_size_sim
 
         self.car_model = CarModel(car_constants)
         self.controller = Controller(goal_crossing_distance=goal_crossing_distance)
@@ -51,6 +52,7 @@ class Simulator:
             plt.savefig(os.path.join(self.image_dir, f'{iter:04d}.png'))
     
     def to_video(self, fps: int, video_name: str = 'simulation.mp4'):
+        print('Saving video...')
         for thread in self.img_saving_threads:
             thread.join()
         images = []
@@ -80,27 +82,26 @@ class Simulator:
 
         ti = time.time()
         try:
-            for instant in np.arange(final_time, step=self.step_size):
+            for instant in np.arange(final_time, step=self.step_size_plot):
                 t0 = time.time()
-                car_input = controller_output
-                #car_derivative = self.car_model.derivative(instant, car_state, car_input)
-                #car_state = car_state + car_derivative * self.step_size
-                
-                car_state = solve_ivp(self.car_model.derivative, (instant, instant + self.step_size), car_state, args=(car_input,), method='RK45').y[:,-1]
-                
-                
-                car_output = self.car_model.output(instant, car_state)
+                for sim_instant in np.arange(instant, instant + self.step_size_plot, self.step_size_sim):
 
-                sensors_input = car_output
-                sensors_output = self.sensors.output(instant, sensors_input)
+                    car_input = controller_output
+                    
+                    car_state = solve_ivp(self.car_model.derivative, (sim_instant, sim_instant + self.step_size_sim), car_state, args=(car_input,), method='RK45').y[:,-1]
+                    
+                    car_output = self.car_model.output(sim_instant, car_state)
 
-                trajectory_output = self.trajectory_generator.output(instant)
-                controller_input = [sensors_output, trajectory_output]
-                controller_output = self.controller.output(instant, controller_input)
+                    sensors_input = car_output
+                    sensors_output = self.sensors.output(sim_instant, sensors_input)
 
-                work_force = self.controller.force_apply if self.controller.force_apply > 0 else 0
-                self.energy_spent += (work_force * car_output[0] 
-                                    + self.car_model.idle_power) * self.step_size
+                    trajectory_output = self.trajectory_generator.output(sim_instant)
+                    controller_input = [sensors_output, trajectory_output]
+                    controller_output = self.controller.output(sim_instant, controller_input)
+
+                    work_force = self.controller.force_apply if self.controller.force_apply > 0 else 0
+                    self.energy_spent += (work_force * car_output[0] 
+                                        + self.car_model.idle_power) * self.step_size_sim
                 
                 self.car_visualizer.set_state(car_state)
 
@@ -116,15 +117,16 @@ class Simulator:
                 t2 = time.time()
                 if real_time:
                     fig.canvas.flush_events()
+                    plt.show(block=False)
 
                 t3 = time.time()
-                self.to_file(int(instant/self.step_size))
+                self.to_file(int(instant/self.step_size_plot))
                 t4 = time.time()
-                print(f' {t1-t0:.2f} - {t2-t1:.2f} - {t3-t2:.2f} - {t4-t3:.2f} - total: {t4-t0:.2f}  {instant:.2f}/{final_time:.2f} s ({(instant+self.step_size)/final_time*100:.2f}%) real time: {time.time() - ti:.2f}', end='\n')
+                print(f' {t1-t0:.3f} - {t2-t1:.2f} - {t3-t2:.2f} - {t4-t3:.2f} - total: {t4-t0:.2f}  {instant:.2f}/{final_time:.2f} s ({(instant+self.step_size_plot)/final_time*100:.2f}%) real time: {time.time() - ti:.2f}', end='\n')
         except:
-            self.to_video(fps=int(1/self.step_size))
+            self.to_video(fps=int(1/self.step_size_plot))
             raise
-        self.to_video(fps=int(1/self.step_size))
+        self.to_video(fps=int(1/self.step_size_plot))
 
 def CoM_position(m: int, n: int) -> Tuple:
     d = 0.64
@@ -177,7 +179,8 @@ if __name__ == "__main__":
     posi = (-5, 10)
     posf = (-85, 100)
     sim_time = 100
-    step = 0.1
+    plot_step = 0.5
+    sim_step = 0.01
 
     view_sim_realtime = True # setting to false halves execution time. images can be seen in folder
 
@@ -202,7 +205,7 @@ if __name__ == "__main__":
         'wheel_width': 0.1,
         'idle_power' : 1
     }  
-    sim = Simulator(step, car_constants, road_constants, None, (posi, posf), sim_time, goal_crossing_distance=goal_crossing_distance)
+    sim = Simulator(plot_step, sim_step, car_constants, road_constants, None, (posi, posf), sim_time, goal_crossing_distance=goal_crossing_distance)
 
     initial_conditions = {
         'car_ic': np.array([0, 0, posi[0]-10, posi[1]-10, 0])
