@@ -125,7 +125,7 @@ if __name__ == "__main__":
         'lon': -9.1388871,
         'zoom': 16,
         'upsampling': 3,
-        'regularization': 20,
+        'regularization': 5,
     }
     
     posi = (-5, 10)
