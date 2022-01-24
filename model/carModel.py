@@ -13,13 +13,22 @@ class CarModel:
         self.plot_y = []
         
     def derivative(self, instant, state, inputs):
-        v, theta, x, y, phi = state
+        v_cm, theta, x, y, phi = state
         f_v, omega_s = inputs
 
-        v_dot = (f_v -((self.M - self.r_cm**2 - self.Izz/self.L**2) * np.cos(phi) \
+        v = v_cm / np.sqrt(np.cos(phi)**2 + self.r_cm**2 * np.sin(phi)**2 - self.r_cm\
+                             * np.sin(2 * phi) * np.cos(self.delta_cm))
+
+        '''v_dot = (f_v -((self.M - self.r_cm**2 - self.Izz/self.L**2) * np.cos(phi) \
                 - 2 * self.r_cm * np.cos(self.delta_cm)) * np.sin(phi) * omega_s * v) / \
                 (self.M * np.cos(phi)**2 + (self.r_cm**2 + self.Izz/self.L**2)*np.sin(phi)**2 \
-                - 2 * self.r_cm * np.cos(phi) * np.cos(self.delta_cm))
+                - 2 * self.r_cm * np.cos(phi) * np.cos(self.delta_cm))'''
+        v_cm_dot = (f_v - np.sin(2 * phi) * v * omega_s - ( - 2 * self.r_cm * np.cos(2 * phi) * np.cos(self.delta_cm)+ \
+                    np.sin(2 * phi) * np.sin(phi)**2 * (1 - self.r_cm**2)) / (np.cos(phi)**2 + \
+                    self.r_cm ** 2 * np.sin(phi)**2 - \
+                    self.r_cm * np.sin(2 * phi) * np.cos(self.delta_cm))**2 * v_cm * omega_s) \
+                    / (self.M + self.Izz / self.L**2 * (np.sin(phi)**2 / (np.cos(phi)**2 + \
+                    self.r_cm**2 * np.sin(phi)**2 - self.r_cm * np.sin(2 * phi) * np.cos(self.delta_cm))))
         theta_dot = v * np.sin(phi) / self.L
         x_dot = v * np.cos(theta) * np.cos(phi)
         y_dot = v * np.sin(theta) * np.cos(phi)
@@ -27,9 +36,10 @@ class CarModel:
 
         # Saturate phi in order not to reach weird stuff
 
-        return np.array([v_dot, theta_dot, x_dot, y_dot, phi_dot])
+        return np.array([v_cm_dot, theta_dot, x_dot, y_dot, phi_dot])
 
-    def derivative_jacobian(self, instant, state, inputs):
+    # Deprecated
+    '''def derivative_jacobian(self, instant, state, inputs):
         v, theta, x, y, phi = state
         f_v, omega_s = inputs
 
@@ -82,7 +92,7 @@ class CarModel:
                                  1]])
                             
         jacobian = np.vstack([gradient_f1, gradient_f2, gradient_f3, gradient_f4, gradient_f5])
-        return jacobian
+        return jacobian'''
 
     def output(self, instant, state):
         return state
