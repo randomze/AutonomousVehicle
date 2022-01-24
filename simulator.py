@@ -14,16 +14,19 @@ from scipy.integrate import solve_ivp
 
 from visualization.carVisualizer import CarVisualizer
 from visualization.mapVisualizer import MapVisualizer
+from model.physics import MoI, CoM_position
 
 class Simulator:
-    def __init__(self, step_size_plot, step_size_sim, car_constants, map_constants, sensorParameters, path: tuple, time: float, goal_crossing_distance: float = -1):
+    def __init__(self, step_size_plot, step_size_sim, car_constants, map_constants, sensorParameters, path: tuple, time: float, energy_budget, goal_crossing_distance: float = -1):
         self.step_size_plot = step_size_plot
         self.step_size_sim = step_size_sim
+        self.energy_budget = energy_budget
 
         self.car_model = CarModel(car_constants)
         self.controller = Controller(goal_crossing_distance=goal_crossing_distance)
         self.sensors = Sensors(sensorParameters)
-        self.trajectory_generator = TrajectoryGenerator(map_constants, path, time, 5)
+        smoothen_window = 5
+        self.trajectory_generator = TrajectoryGenerator(map_constants, path, time, smoothen_window, energy_budget)
         self.car_visualizer = CarVisualizer(car_constants)
         self.map_visualizer = MapVisualizer(map_constants)
         self.energy_spent = 0
@@ -49,7 +52,12 @@ class Simulator:
             thread.start()
             self.img_saving_threads.append(thread)
         else:
-            plt.savefig(os.path.join(self.image_dir, f'{iter:04d}.png'))
+            try:
+                plt.savefig(os.path.join(self.image_dir, f'{iter:04d}.png'))
+            except:
+                if os.path.isfile(os.path.join(self.image_dir, f'{iter:04d}.png')):
+                    os.remove(os.path.join(self.image_dir, f'{iter:04d}.png'))
+                raise
     
     def to_video(self, fps: int, video_name: str = 'simulation.mp4'):
         print('Saving video...')
@@ -79,7 +87,8 @@ class Simulator:
         ax.set_xlabel('X [m]')
         ax.set_ylabel('Y [m]')
         self.map_visualizer.plot(ax)
-
+        info_string = ""
+        overlay = ax.text(0.05, 0.95, info_string, transform=ax.transAxes, fontsize=10, verticalalignment='top', color='y')
         ti = time.time()
         try:
             for instant in np.arange(final_time, step=self.step_size_plot):
@@ -105,6 +114,13 @@ class Simulator:
                 
                 self.car_visualizer.set_state(car_state)
 
+
+                info_string = f'Time: {sim_instant:.2f} s\n'
+                info_string += f'Energy spent: {self.energy_spent:.2f} J\n'
+                info_string += f'Energy budget: {self.energy_budget:.2f} J\n'
+
+                overlay.set_text(info_string)
+
                 # Do some plots
                 t1 = time.time()
                 self.controller.plot(ax)
@@ -128,45 +144,6 @@ class Simulator:
             raise
         self.to_video(fps=int(1/self.step_size_plot))
 
-def CoM_position(m: int, n: int) -> Tuple:
-    d = 0.64
-    W = 2 * d
-    Lm = 2.2
-    Lr = Lf = 0.566
-    L = Lr + Lm + Lf
-
-    com_x = 0
-    for j in range(n):
-        com_x += W/2 - (j - 1/2)*W/n
-    com_x = com_x / n
-
-    com_y = 0
-    for i in range(m):
-        com_y += L/2 - (i - 1/2)*L/m
-    com_y = com_y / m
-
-    com_r = np.sqrt((com_x/Lm) ** 2 + (com_y/Lm)**2)
-    com_delta = np.arctan2(com_x, com_y)
-
-    return (com_r, com_delta)
-
-def MoI(m: int, n: int) -> float:
-    d = 0.64
-    W = 2 * d
-    Lm = 2.2
-    Lr = Lf = 0.566
-    L = Lr + Lm + Lf
-    M = 810
-
-    Izz = 0
-    for i in range(m):
-        for j in range(n):
-            Izz += (W/2 - (j - 1/2)*W/n)**2 + (L/2 - (i - 1/2)*L/m)**2
-
-    Izz *= M/(m*n)
-
-    return Izz
-
 if __name__ == "__main__":
     road_constants = {
         'lat': 38.7367256,
@@ -179,8 +156,9 @@ if __name__ == "__main__":
     posi = (-5, 10)
     posf = (-85, 100)
     sim_time = 100
-    plot_step = 0.5
-    sim_step = 0.01
+    energy_budget = 1000
+    plot_step = 0.05
+    sim_step = 0.001
 
     view_sim_realtime = True # setting to false halves execution time. images can be seen in folder
 
@@ -205,7 +183,7 @@ if __name__ == "__main__":
         'wheel_width': 0.1,
         'idle_power' : 1
     }  
-    sim = Simulator(plot_step, sim_step, car_constants, road_constants, None, (posi, posf), sim_time, goal_crossing_distance=goal_crossing_distance)
+    sim = Simulator(plot_step, sim_step, car_constants, road_constants, None, (posi, posf), sim_time, energy_budget, goal_crossing_distance=goal_crossing_distance)
 
     initial_conditions = {
         'car_ic': np.array([0, 0, posi[0]-10, posi[1]-10, 0])

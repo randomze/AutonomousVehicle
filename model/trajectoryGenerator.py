@@ -7,12 +7,13 @@ from visualization.utils import pixel_to_xy, xy_to_pixel
 
 class TrajectoryGenerator:
 
-    def __init__(self, road_constants: dict, path: tuple, time: float, smoothen_window: int):
+    def __init__(self, road_constants: dict, path: tuple, time: float, smoothen_window: int, energy_budget: float):
         self.lat = road_constants['lat']
         self.lon = road_constants['lon']
         self.zoom = road_constants['zoom']
         self.upsampling = road_constants['upsampling']
         self.regularization = road_constants['regularization']
+        self.energy_budget = energy_budget
 
         road_map, road_graph = road.get_road_info((self.lat, self.lon), self.zoom, max_regularization_dist=self.regularization, res_zoom_upsample=self.upsampling)
 
@@ -26,7 +27,6 @@ class TrajectoryGenerator:
 
         self.states = None
         self.goal_states(time)
-
 
         self.last_time_query_idx = 0
 
@@ -71,7 +71,7 @@ class TrajectoryGenerator:
         link_length = 10
         max_speed = 30
         min_speed = 7
-        E_budget = 1000
+        E_budget = self.energy_budget
 
         link_lengths = []
         max_speeds = []
