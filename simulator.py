@@ -10,6 +10,7 @@ from model.sensors import Sensors
 from model.trajectoryGenerator import TrajectoryGenerator
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.integrate import solve_ivp
 
 from visualization.carVisualizer import CarVisualizer
 from visualization.mapVisualizer import MapVisualizer
@@ -82,15 +83,12 @@ class Simulator:
             for instant in np.arange(final_time, step=self.step_size):
                 t0 = time.time()
                 car_input = controller_output
-                car_derivative = self.car_model.derivative(instant, car_state, car_input)
-                car_state = car_state + car_derivative * self.step_size
+                #car_derivative = self.car_model.derivative(instant, car_state, car_input)
+                #car_state = car_state + car_derivative * self.step_size
                 
-                if car_state[4] < -np.pi/3:
-                    car_state[4] = -np.pi/3
-
-                if car_state[4] > np.pi/3:
-                    car_state[4] = np.pi/3
-
+                car_state = solve_ivp(self.car_model.derivative, (instant, instant + self.step_size), car_state, args=(car_input,), method='RK45').y[:,-1]
+                
+                
                 car_output = self.car_model.output(instant, car_state)
 
                 sensors_input = car_output
@@ -179,9 +177,9 @@ if __name__ == "__main__":
     posi = (-5, 10)
     posf = (-85, 100)
     sim_time = 100
-    step = 0.05
+    step = 0.1
 
-    view_sim_realtime = True
+    view_sim_realtime = True # setting to false halves execution time. images can be seen in folder
 
     goal_crossing_distance = -3.2
 
