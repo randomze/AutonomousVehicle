@@ -2,7 +2,6 @@ from typing import Union
 import matplotlib.pyplot as plt
 import matplotlib.colors as clrs
 import numpy as np
-from .utils import get_rectangle_corners, figure_number
 from environment import road, graph
 
 
@@ -34,15 +33,5 @@ class MapVisualizer:
 
         self.cmap = clrs.ListedColormap(['black', 'white'])
     
-    def plot(self, state, window: tuple = ((-20, 20), (-20, 20)), block: bool = False, clf: bool = False) -> None:
-        plt.figure(figure_number)
-        if clf: plt.clf()
-        v, theta, x, y, phi = state
-
-        plt.imshow(self.map, interpolation=self.interp_method, extent=self.extent, cmap=self.cmap)
-
-        xlim = (window[0][0] + x, window[0][1] + x)
-        ylim = (window[1][0] + y, window[1][1] + y)
-        plt.xlim(xlim)
-        plt.ylim(ylim)     
-        plt.show(block=block)
+    def plot(self, ax: plt.Axes):
+        ax.imshow(self.map, interpolation=self.interp_method, extent=self.extent, cmap=self.cmap)
