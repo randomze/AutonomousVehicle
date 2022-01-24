@@ -4,11 +4,11 @@ import numpy as np
 
 class Controller:
 
-    def __init__(self):
+    def __init__(self, goal_crossing_distance: float = -1):
         self.current_waypoint = 0
         self.trajectory = None
         self.last_position = None
-        self.follower = WaypointFollower()
+        self.follower = WaypointFollower(goal_crossing_threshold=goal_crossing_distance)
 
     def output(self, instant, input):
         # Separate input into components
@@ -63,8 +63,9 @@ class WaypointFollower:
     """From a given path, keep a representation of the progress of the car 
     along that path, allowing estimating the current waypoint to follow.
     """
-    def __init__(self):
+    def __init__(self, goal_crossing_threshold: float = 0):
         self.goal = {} # index of current waypoint to follow for each path
+        self.goal_crossing_threshold = goal_crossing_threshold
     
     def next_waypoint(self, path: np.ndarray, current_position: np.ndarray):
         """Returns the next waypoint to follow for the given path and current position.
@@ -90,7 +91,9 @@ class WaypointFollower:
             goals_vec = path[self.goal[path_b]] - path[self.goal[path_b]-1] 
         else:
             goals_vec = path[self.goal[path_b]+1] - path[self.goal[path_b]]
+        goals_vec = goals_vec / np.linalg.norm(goals_vec)
         car_vec = current_position - path[self.goal[path_b]]
 
-        return np.dot(goals_vec, car_vec) > 0
+        # project car_vec onto goals_vec
+        return np.dot(goals_vec, car_vec) > self.goal_crossing_threshold
 

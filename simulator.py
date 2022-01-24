@@ -13,11 +13,11 @@ from visualization.carVisualizer import CarVisualizer
 from visualization.mapVisualizer import MapVisualizer
 
 class Simulator:
-    def __init__(self, step_size, car_constants, map_constants, sensorParameters, path: tuple, time: float):
+    def __init__(self, step_size, car_constants, map_constants, sensorParameters, path: tuple, time: float, goal_crossing_distance: float = -1):
         self.step_size = step_size
 
         self.car_model = CarModel(car_constants)
-        self.controller = Controller()
+        self.controller = Controller(goal_crossing_distance=goal_crossing_distance)
         self.sensors = Sensors(sensorParameters)
         self.trajectory_generator = TrajectoryGenerator(map_constants, path, time, 5)
         self.car_visualizer = CarVisualizer(car_constants)
