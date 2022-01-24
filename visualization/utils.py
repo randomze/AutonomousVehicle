@@ -1,16 +1,6 @@
 import numpy as np
 from enum import Enum
 
-class State(Enum):
-    V = 0
-    THETA = 1
-    X = 2
-    Y = 3
-    PHI = 4
-
-
-figure_number = 1
-
 def get_rectangle_corners(bottom_left_corner, side_x, side_y):
     corners = np.empty((4, 2))
 
