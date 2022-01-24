@@ -19,9 +19,7 @@ class TrajectoryGenerator:
         self.meters_per_pixel = road.zoom_to_scale(self.zoom + self.upsampling, self.lat)
         
         self.path = np.array(self.get_xy_path(*path))
-        self.goal = None
         self.states = None
-        self.times = None
         self.goal_states(time)
 
         self.last_time_query_idx = 0
@@ -49,13 +47,11 @@ class TrajectoryGenerator:
         return points_to_traverse
 
     def goal_states(self, total_time: float, vel_multiplier: float = 1.0):
-        times = get_normalized_times(self.path)*total_time
-        velocities = vel_multiplier*np.ones(times.shape[0])*get_entire_distance(self.path)/total_time
+        velocities = vel_multiplier*np.ones(self.path.shape[0])*get_entire_distance(self.path)/total_time
         thetas = get_angles(self.path)
         positions = self.path
         phis = np.zeros(self.path.shape[0])
 
-        self.times = times
         self.states = np.column_stack((velocities, thetas, positions, phis))
 
 
@@ -65,17 +61,9 @@ class TrajectoryGenerator:
         for point in self.path:
             plt.scatter(point[0], point[1], color=color)
 
-        if self.goal is not None:
-            plt.scatter(self.goal[0], self.goal[1], color=cur_color)
         plt.show(block=block)
 
     def output(self, instant):
-        if instant > self.times[self.last_time_query_idx]:
-            self.last_time_query_idx += 1
-        self.last_time_query_idx = min(self.last_time_query_idx, len(self.times)-1)
-
-        state = self.states[self.last_time_query_idx]
-        self.goal = state[2:4]
         return self.states
 
 def get_entire_distance(positions: np.ndarray):

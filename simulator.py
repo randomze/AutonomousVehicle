@@ -149,7 +149,7 @@ if __name__ == "__main__":
         'Izz': Izz,
         'r_cm': com_r,
         'delta_cm': com_delta,
-        'wheel_width': 0.1
+        'wheel_width': 0.1,
         'idle_power' : 1
     }  
     sim = Simulator(0.1, car_constants, road_constants, None, (posi, posf), sim_time)
