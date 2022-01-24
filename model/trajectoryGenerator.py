@@ -37,11 +37,8 @@ class TrajectoryGenerator:
 
         returns: smoothened path
         '''
-        smooth_path = np.empty_like(path)
-        for point_idx, point in enumerate(path):
-            window_indices = np.arange(start=max(0, point_idx - smoothen_window),
-                                       stop=min(point_idx + smoothen_window + 1, path.shape[0]))
-            smooth_path[point_idx, :] = np.average(path[window_indices, :], axis=0)
+        kernel = np.ones((2*smoothen_window + 1)) / (2*smoothen_window + 1)
+        smooth_path = np.convolve(path, kernel, mode='same')
 
         return smooth_path
 
@@ -90,9 +87,9 @@ class TrajectoryGenerator:
                 link_lengths += [current_distance]
 
                 current_curve = np.abs(current_curve) % 2*np.pi
-                max_speed = (max_speed * (2*np.pi - current_curve) + min_speed * current_curve) / (2*np.pi)
+                max_speed_current = (max_speed * (2*np.pi - current_curve) + min_speed * current_curve) / (2*np.pi)
 
-                max_speeds += [max_speed]
+                max_speeds += [max_speed_current]
                 current_distance = 0
                 current_curve = 0
 
@@ -181,6 +178,7 @@ def get_distances(positions: np.ndarray):
         distance[i] = np.linalg.norm(positions[i] - positions[i-1])
 
     return distance
+
 def get_angles(positions: np.ndarray):
     angles = np.zeros(positions.shape[0])
 
