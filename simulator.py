@@ -75,7 +75,8 @@ class Simulator:
                                 + self.car_model.idle_power) * self.step_size
             # Do some plots
             self.map_visualizer.plot(car_state, clf=True, window=vis_window)
-            self.trajectory_generator.plot()
+            #self.trajectory_generator.plot()
+            self.controller.plot()
             self.car_visualizer.plot(car_state, window=vis_window)
             self.to_file(int(instant/self.step_size))
         self.to_video(fps=int(1/self.step_size))
