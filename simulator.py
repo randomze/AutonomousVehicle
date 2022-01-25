@@ -36,6 +36,12 @@ class Simulator:
         if not os.path.isdir(self.cache_dir): os.mkdir(self.cache_dir)
         if not os.path.isdir(self.image_dir): os.mkdir(self.image_dir)
 
+        initial_waypoint_difference = self.trajectory_generator.path[1] - self.trajectory_generator.path[0]
+        initial_heading = np.arctan2(initial_waypoint_difference[1], initial_waypoint_difference[0])
+        self.initial_conditions = {
+            'car_ic': np.array([0, initial_heading, *self.trajectory_generator.path[0], 0, 0])
+        }
+
         self.img_saving_threads = []
 
     def to_file(self, iter: int, threaded: bool = False):
@@ -74,8 +80,8 @@ class Simulator:
             os.remove(image)
         writer.close()
 
-    def simulate(self, initial_conditions, final_time, vis_window = ((-20, 20), (-20, 20)), real_time = False):
-        car_state = initial_conditions['car_ic']
+    def simulate(self, final_time, vis_window = ((-20, 20), (-20, 20)), real_time = False):
+        car_state = self.initial_conditions['car_ic']
         controller_output = np.array([0, 0])
         sensors_output = np.array([0, 0])
         trajectory_output = np.array([0, 0])
@@ -99,6 +105,13 @@ class Simulator:
                     
                     car_state = solve_ivp(self.car_model.derivative, (sim_instant, sim_instant + self.step_size_sim), car_state, args=(car_input,), method='RK45').y[:,-1]
                     
+                    # Saturate phi in order not to reach weird stuff
+                    if car_state[4] < -np.pi/3:
+                        car_state[4] = -np.pi/3
+
+                    if car_state[4] > np.pi/3:
+                        car_state[4] = np.pi/3
+
                     car_output = self.car_model.output(sim_instant, car_state)
 
                     sensors_input = car_output
@@ -178,16 +191,13 @@ if __name__ == "__main__":
         'r': 0.256,
         'Length': 3.332,
         'Width': 1.508,
-        'M': 800.0,
+        'M': 810.0,
         'Izz': Izz,
+        'Izz_phi': 0.02*Izz,
         'r_cm': com_r,
         'delta_cm': com_delta,
         'wheel_width': 0.1,
         'idle_power' : 1
     }  
     sim = Simulator(plot_step, sim_step, car_constants, road_constants, None, (posi, posf), sim_time, energy_budget, goal_crossing_distance=goal_crossing_distance)
-
-    initial_conditions = {
-        'car_ic': np.array([0, 0, posi[0], posi[1], 0])
-    }
-    sim.simulate(initial_conditions, sim_time, vis_window=((-20, 20), (-20, 20)), real_time=view_sim_realtime)
+    sim.simulate(sim_time, vis_window=((-20, 20), (-20, 20)), real_time=view_sim_realtime)

@@ -43,7 +43,7 @@ class CarVisualizer:
 
 
     def get_car_representation(self, state):
-        v, theta, x, y, phi = state
+        v, theta, x, y, phi, _ = state
         car_body = get_rectangle_corners([-self.Lr, -self.d], self.car_length, self.car_width)
 
         front_wheel_rotation_matrix = np.array([[np.cos(phi), -np.sin(phi)], \

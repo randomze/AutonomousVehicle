@@ -148,10 +148,13 @@ class TrajectoryGenerator:
                     current_distance = 0
                     current_link += 1
 
+        print(velocities)
+
         positions = self.path
         phis = np.zeros(self.path.shape[0])
+        phis_dot = np.zeros(self.path.shape[0])
 
-        self.states = np.column_stack((velocities, thetas, positions, phis))
+        self.states = np.column_stack((velocities, thetas, positions, phis, phis_dot))
 
     def output(self, instant):
         return self.states
