@@ -1,5 +1,4 @@
 import numpy as np
-from enum import Enum
 
 def get_rectangle_corners(bottom_left_corner, side_x, side_y):
     corners = np.empty((4, 2))

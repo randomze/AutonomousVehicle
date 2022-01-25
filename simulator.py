@@ -111,13 +111,14 @@ class Simulator:
                     work_force = self.controller.force_apply if self.controller.force_apply > 0 else 0
                     self.energy_spent += (work_force * car_output[0] 
                                         + self.car_model.idle_power) * self.step_size_sim
+                    self.car_visualizer.set_state(car_state)
                 
-                self.car_visualizer.set_state(car_state)
-
+                collide = self.map_visualizer.collision_counter(self.car_visualizer)
 
                 info_string = f'Time: {sim_instant:.2f} s\n'
                 info_string += f'Energy spent: {self.energy_spent:.2f} J\n'
                 info_string += f'Energy budget: {self.energy_budget:.2f} J\n'
+                info_string += f'Collision: {collide}\n'
 
 
                 # Do some plots
@@ -138,7 +139,7 @@ class Simulator:
                 t3 = time.time()
                 self.to_file(int(instant/self.step_size_plot))
                 t4 = time.time()
-                print(f' {t1-t0:.3f} - {t2-t1:.2f} - {t3-t2:.2f} - {t4-t3:.2f} - total: {t4-t0:.2f}  {instant:.2f}/{final_time:.2f} s ({(instant+self.step_size_plot)/final_time*100:.2f}%) real time: {time.time() - ti:.2f}', end='\n')
+                print(f' {t1-t0:.2f} - {t2-t1:.2f} - {t3-t2:.2f} - {t4-t3:.2f} - total: {t4-t0:.2f}  {instant:.2f}/{final_time:.2f} s ({(instant+self.step_size_plot)/final_time*100:.2f}%) real time: {time.time() - ti:.2f}', end='\n')
         except:
             self.to_video(fps=int(1/self.step_size_plot))
             raise
@@ -157,7 +158,7 @@ if __name__ == "__main__":
     posf = (-85, 100)
     sim_time = 100
     energy_budget = 1000
-    plot_step = 0.05
+    plot_step = 0.4
     sim_step = 0.001
 
     view_sim_realtime = True # setting to false halves visualization overhead

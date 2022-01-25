@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def is_colliding(obj1, obj2):
+def is_colliding(obj1, *objs):
     """Detects if two objects are colliding by the separating axis theorem.
     
     Objects are represented by their vertices (anti-clockwise).
@@ -13,12 +13,16 @@ def is_colliding(obj1, obj2):
         bool: True if colliding, False otherwise.
 
     """
-    if not is_colliding_ax1(obj1, obj2):
-        return False
-    if not is_colliding_ax1(obj2, obj1):
-        return False
+    
+    for obj2 in objs:
+        if is_colliding_ax1(obj1, obj2):
+            return True
+    for obj2 in objs:
+        if is_colliding_ax1(obj2, obj1):
+            return True
 
-    return True
+    return False
+
 
 def is_colliding_ax1(obj1: np.ndarray, obj2: np.ndarray):
 
@@ -39,6 +43,7 @@ def is_colliding_ax1(obj1: np.ndarray, obj2: np.ndarray):
         # find the min and max of the projections
         p1m, p1M = np.min(proj_obj1), np.max(proj_obj1)
         p2m, p2M = np.min(proj_obj2), np.max(proj_obj2)
+
 
         # if there is no overlap, return false
         if p2m > p1M or p1m > p2M:
