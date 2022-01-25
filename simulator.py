@@ -119,12 +119,12 @@ class Simulator:
                 info_string += f'Energy spent: {self.energy_spent:.2f} J\n'
                 info_string += f'Energy budget: {self.energy_budget:.2f} J\n'
 
-                overlay.set_text(info_string)
 
                 # Do some plots
                 t1 = time.time()
                 self.car_visualizer.plot(ax)
                 self.controller.plot(ax)
+                overlay.set_text(info_string)
 
                 x, y = car_state[2:4]
                 ax.set_xlim([vis_window[0][0] + x, vis_window[0][1] + x])
@@ -157,10 +157,10 @@ if __name__ == "__main__":
     posf = (-85, 100)
     sim_time = 100
     energy_budget = 1000
-    plot_step = 0.3
+    plot_step = 0.05
     sim_step = 0.001
 
-    view_sim_realtime = True # setting to false halves execution time. images can be seen in folder
+    view_sim_realtime = True # setting to false halves visualization overhead
 
     goal_crossing_distance = -3.2
 
@@ -186,6 +186,6 @@ if __name__ == "__main__":
     sim = Simulator(plot_step, sim_step, car_constants, road_constants, None, (posi, posf), sim_time, energy_budget, goal_crossing_distance=goal_crossing_distance)
 
     initial_conditions = {
-        'car_ic': np.array([0, 0, posi[0]-10, posi[1]-10, 0])
+        'car_ic': np.array([0, 0, posi[0], posi[1], 0])
     }
     sim.simulate(initial_conditions, sim_time, vis_window=((-20, 20), (-20, 20)), real_time=view_sim_realtime)

@@ -97,7 +97,7 @@ class TrajectoryGenerator:
         link_lengths = np.array(link_lengths)
         max_speeds = np.array(max_speeds)
         min_speeds = np.ones_like(max_speeds) * 1e-6
-        v_i = 10
+        v_i = 0
         v_f = 0
 
         M = 810
