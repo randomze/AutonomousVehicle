@@ -52,7 +52,7 @@ class MapVisualizer:
 
     def collision_counter(self, car_repr: CarVisualizer, square_window_side: int = 5) -> int:
         self.is_currently_colliding = self.car_collides_with_road(car_repr, square_window_side)
-        if self.is_colliding and not self.is_currently_colliding:
+        if self.is_currently_colliding and not self.is_colliding:
             self.collision_count += 1
         self.is_colliding = self.is_currently_colliding
         return self.collision_count
