@@ -132,7 +132,7 @@ class Simulator:
                 info_string += f'Energy spent: {self.energy_spent:.2f} J\n'
                 info_string += f'Energy budget: {self.energy_budget:.2f} J\n'
                 info_string += f'Collisions: {collide}\n'
-                info_string += f'Velocity: {car_output[0]:.2f} m/s\n'
+                info_string += f'Velocity: {car_output[0]*3600/1000:.2f} km/hr\n'
 
 
                 # Do some plots
