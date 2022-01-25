@@ -21,17 +21,25 @@ class CarVisualizer:
     def set_state(self, state):
         self.state = state
 
-    def plot(self, ax: plt.Axes):
+    def plot(self, ax: plt.Axes, zorder=1):
         car_rectangles = self.get_car_representation(self.state)
+        rectangles = []
         if len(self.lines) == 0:
             for i in range(4):
                 rectangle = car_rectangles[i*4:i*4+4,:]
-                line, = ax.plot(np.append(rectangle[:, 0], rectangle[0, 0]), np.append(rectangle[:, 1], rectangle[0, 1]))
-                self.lines.append(line)
+                rectangles.append(rectangle)
+            rect_body = ax.add_patch(plt.Polygon(rectangles[0], closed=True, fill=True, edgecolor='#1f77b4', facecolor='#1f77b4', zorder=zorder))
+            self.lines.append(rect_body)
+            rect_front_wheel = ax.add_patch(plt.Polygon(rectangles[1], closed=True, fill=True, edgecolor='C1', facecolor='C1', zorder=zorder))
+            self.lines.append(rect_front_wheel)
+            rect_left_rear_wheel = ax.add_patch(plt.Polygon(rectangles[2], closed=True, fill=True, edgecolor='C1', facecolor='C1', zorder=zorder))
+            self.lines.append(rect_left_rear_wheel)
+            rect_right_rear_wheel = ax.add_patch(plt.Polygon(rectangles[3], closed=True, fill=True, edgecolor='C1', facecolor='C1', zorder=zorder))
+            self.lines.append(rect_right_rear_wheel)
             return
         for i in range(4):
             rectangle = car_rectangles[i*4:i*4+4,:]
-            self.lines[i].set_data(np.append(rectangle[:, 0], rectangle[0, 0]), np.append(rectangle[:, 1], rectangle[0, 1]))
+            self.lines[i].set_xy(rectangle)
 
 
     def get_car_representation(self, state):

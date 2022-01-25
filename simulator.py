@@ -123,8 +123,8 @@ class Simulator:
 
                 # Do some plots
                 t1 = time.time()
-                self.controller.plot(ax)
                 self.car_visualizer.plot(ax)
+                self.controller.plot(ax)
 
                 x, y = car_state[2:4]
                 ax.set_xlim([vis_window[0][0] + x, vis_window[0][1] + x])
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     posf = (-85, 100)
     sim_time = 100
     energy_budget = 1000
-    plot_step = 0.05
+    plot_step = 0.3
     sim_step = 0.001
 
     view_sim_realtime = True # setting to false halves execution time. images can be seen in folder

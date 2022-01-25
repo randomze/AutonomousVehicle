@@ -41,7 +41,7 @@ class Controller:
 
         return np.array([self.force_apply, steering_apply])
 
-    def plot(self, ax: plt.Axes, waypoint_window_lims: tuple = (10, 10), cur_color: str = 'r', nei_color: str = 'b'):
+    def plot(self, ax: plt.Axes, waypoint_window_lims: tuple = (10, 10), cur_color: str = 'r', nei_color: str = 'b', zorder=0):
         """Plot current waypoint and neighbors
         """
         if self.trajectory is None: return
@@ -54,9 +54,9 @@ class Controller:
         ])
 
         if len(self.lines) == 0:
-            line, = ax.plot(path[wp_plt[0]:wp_plt[1], 0], path[wp_plt[0]:wp_plt[1], 1], color=cur_color)
+            line, = ax.plot(path[wp_plt[0]:wp_plt[1], 0], path[wp_plt[0]:wp_plt[1], 1], color=cur_color, zorder=zorder)
             self.lines.append(line)
-            line, = ax.plot(following_waypoint[0], following_waypoint[1], color=nei_color, marker='o')
+            line, = ax.plot(following_waypoint[0], following_waypoint[1], color=nei_color, marker='o', zorder=zorder)
             self.lines.append(line)
             return
 

@@ -101,18 +101,3 @@ class CarModel:
 
     def output(self, instant, state):
         return state
-
-    def plot(self, instant, state, fig_number):
-        plt.figure(fig_number)
-        plt.xlabel('X')
-        plt.ylabel('Y')
-        plt.xlim([-10, 10])
-        plt.ylim([-10, 10])
-
-        _, _, x, y, _ = state
-        self.plot_x += [x]
-        self.plot_y += [y]
-
-        plt.scatter(x, y, c='r')
-        plt.show()
-        plt.pause(0.01)
