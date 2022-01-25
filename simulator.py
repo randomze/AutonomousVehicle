@@ -119,6 +119,7 @@ class Simulator:
                 info_string += f'Energy spent: {self.energy_spent:.2f} J\n'
                 info_string += f'Energy budget: {self.energy_budget:.2f} J\n'
                 info_string += f'Collisions: {collide}\n'
+                info_string += f'Velocity: {car_output[0]:.2f} m/s\n'
 
 
                 # Do some plots
@@ -157,7 +158,7 @@ if __name__ == "__main__":
     posi = (-5, 10)
     posf = (-85, 100)
     sim_time = 100
-    energy_budget = 1000
+    energy_budget = 10000
     plot_step = 0.4
     sim_step = 0.01
 
