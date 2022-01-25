@@ -35,9 +35,9 @@ class Controller:
 
         heading_body_error = np.arctan2(error_body_frame[2], error_body_frame[1]) - sensors_output[4]
 
-        self.force_apply = 100 * velocity_error
+        self.force_apply = 1000 * velocity_error
 
-        steering_apply = 10 * heading_body_error
+        steering_apply = 100 * heading_body_error
 
         return np.array([self.force_apply, steering_apply])
 
