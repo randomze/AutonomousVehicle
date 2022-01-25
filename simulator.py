@@ -118,7 +118,7 @@ class Simulator:
                 info_string = f'Time: {sim_instant:.2f} s\n'
                 info_string += f'Energy spent: {self.energy_spent:.2f} J\n'
                 info_string += f'Energy budget: {self.energy_budget:.2f} J\n'
-                info_string += f'Collision: {collide}\n'
+                info_string += f'Collisions: {collide}\n'
 
 
                 # Do some plots
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     sim_time = 100
     energy_budget = 1000
     plot_step = 0.4
-    sim_step = 0.001
+    sim_step = 0.01
 
     view_sim_realtime = True # setting to false halves visualization overhead
 

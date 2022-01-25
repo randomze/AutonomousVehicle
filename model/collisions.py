@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def is_colliding(obj1, *objs):
     """Detects if two objects are colliding by the separating axis theorem.
     
@@ -15,16 +14,34 @@ def is_colliding(obj1, *objs):
     """
     
     for obj2 in objs:
-        if is_colliding_ax1(obj1, obj2):
-            return True
-    for obj2 in objs:
-        if is_colliding_ax1(obj2, obj1):
+        if are_colliding(obj1, obj2):
             return True
 
     return False
 
+def are_colliding(obj1, obj2):
+    if not is_colliding_ax1(obj1, obj2):
+        return False
+    if not is_colliding_ax1(obj2, obj1):
+        return False
+
+    return True
 
 def is_colliding_ax1(obj1: np.ndarray, obj2: np.ndarray):
+    """Detects if two objects are colliding.
+    First it checks if they are definitely not colliding through AABB collision
+    checking, refines the check by the separating axis theorem.
+
+    Args:
+        obj1 (np.ndarray): The first object.
+        obj2 (np.ndarray): The second object.
+    
+    Returns:
+        bool: True if colliding, False otherwise.
+    """
+
+    if not is_colliding_AABB(obj1, obj2):
+        return False
 
     for i in range(len(obj1)):
         # vertexes
@@ -50,3 +67,26 @@ def is_colliding_ax1(obj1: np.ndarray, obj2: np.ndarray):
             return False
     return True
 
+
+def is_colliding_AABB(obj1: np.ndarray, obj2: np.ndarray):
+    """Detects if two objects are colliding by the AABB method.
+    
+    Objects are represented by their vertices (anti-clockwise).
+    Args:
+        obj1 (np.ndarray): The first object.
+        obj2 (np.ndarray): The second object.
+
+    Returns:
+        bool: True if colliding, False otherwise.
+
+    """
+    # find the min and max of the projections
+    p1m, p1M = np.min(obj1, axis=0), np.max(obj1, axis=0)
+    p2m, p2M = np.min(obj2, axis=0), np.max(obj2, axis=0)
+
+    # if there is no overlap, return false
+    if p2m[0] > p1M[0] or p1m[0] > p2M[0]:
+        return False
+    if p2m[1] > p1M[1] or p1m[1] > p2M[1]:
+        return False
+    return True

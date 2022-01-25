@@ -1,4 +1,5 @@
 from typing import Union
+import time
 import matplotlib.pyplot as plt
 import matplotlib.colors as clrs
 import numpy as np
@@ -72,9 +73,13 @@ class MapVisualizer:
 
         car_rects = car_repr.get_car_representation(car_repr.state)
         car_parts = np.array_split(car_rects, 4, 0)
-
         for car_part in car_parts:
             if is_colliding(car_part, *admissible_blocks):
+                if not self.is_colliding:
+                    ax = plt.gca()
+                    ax.add_patch(plt.Polygon(car_part, closed=True, fill=False, edgecolor='red'))
+                    for obj3 in admissible_blocks:
+                        ax.add_patch(plt.Polygon(obj3, closed=True, fill=False, edgecolor='blue'))
                 return True
         return False
 
