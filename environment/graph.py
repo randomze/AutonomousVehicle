@@ -105,7 +105,7 @@ class WeightedGraph:
         with open(cache_file, 'wb') as f:
             pickle.dump((parents, tentative_distances), f)
         return parents, tentative_distances
-    def get_path_from_mst(self, end_node, parents, distances):
+    def get_path_from_spt(self, end_node, parents, distances):
         if distances[end_node] == float('inf'):
             return []
         path = [end_node]
