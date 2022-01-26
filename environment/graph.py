@@ -208,7 +208,7 @@ def draw_path(img: np.ndarray, path: list, *draw_args, **draw_kwargs) -> np.ndar
 
     return img_out
 
-def draw_graph(img: np.ndarray, graph: WeightedGraph, transpose: bool = False,
+def draw_graph(img: np.ndarray, graph: WeightedGraph, transpose: bool = True,
                 edge_color: tuple[int, int, int] = (255, 0, 255),
                 node_color: tuple[int, int, int] = (0, 0, 255),
                 edge_thickness: int = 1, node_thickness: int = 2,

@@ -221,39 +221,77 @@ def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np
             return pickle.load(f)
 
     img = get_road_image(*args, **kwargs)
-    img = np.where(img > 0, 255, 0).astype(np.uint8)
+    img = np.where(img == 255, 255, 0).astype(np.uint8)
     road_graph = graph.get_graph_from_binary_image((np.sum(img, 2) if len(img.shape) > 2 else img) > 0.5, max_regularization_dist = max_regularization_dist)
     with open(os.path.join(cache_dir, item_name + ".pkl"), "wb") as f:
         pickle.dump((img, road_graph), f)
 
     return img, road_graph
 
-# btw, run this script from base directory with python -m environment.road
+# this script generates the examples in the report
+# run it from base directory with python -m environment.road
 if __name__ == '__main__':
-    #img, graph = get_road_image((38.72, -9.15), 15) #random lisbon place
-    img, r_graph = get_road_info((38.7367256,-9.1388871), 16, max_regularization_dist=20, res_zoom_upsample=3) # ist
-    # convert to 3 channel image
-    edges = get_edge_img(img)
-    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-    
-    img_graph = graph.draw_graph(img, r_graph, transpose=True)
-    
-    # example demonstrating shortest path calculation
-    source, end = list(r_graph.connections.keys())[1], list(r_graph.connections.keys())[50]
-    parents, distances = r_graph.get_spt_dijkstra(source)
-    path = r_graph.get_path_from_spt(end, parents, distances)
+    ims_to_save = []
+    edge_color = (0, 0, 255)
+    node_color = (255, 0, 0)
 
-    #print(graph)
-    print(f"Shortest path from {source} to {end}: {path}")
-    print(f"Shortest path length in nodes: {len(path)}")
-    print(f"Shortest path length in meters: {r_graph.get_path_cost(path)}")
+    lon_lat = (38.7367256,-9.1388871)    
+    # map for 4 different upsampling levels
+    print("Generating map for 4 different upsampling levels")
+    for i in range(4):
+        img, _ = get_road_info(lon_lat, 16, max_regularization_dist=20, res_zoom_upsample=i)
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        ims_to_save.append((f'upsample_ex_{i}', img))
 
-    img_path = graph.draw_path(img_graph, path, edge_color = (0, 255, 255), node_color = (0, 255, 255), transpose=True)
+    # road image, skeletonized and graph
+    print("Generating road graph and skeletonized road image")
+    lon_lat2 = (38.731248,-9.1883439)
+    img, r_graph = get_road_info(lon_lat2, 16, max_regularization_dist=20, res_zoom_upsample=0)
+    thinned = cv2.ximgproc.thinning(img)
+    r_w_graph = graph.draw_graph(cv2.cvtColor(img, cv2.COLOR_GRAY2BGR), r_graph, edge_color=edge_color, node_color=node_color)
+    ims_to_save.append(('graph_ex_road', img))
+    ims_to_save.append(('graph_ex_road_skeleton', thinned))
+    ims_to_save.append(('graph_ex_road_graph', r_w_graph))
 
-    cv2.imshow("edges", edges)
-    cv2.imshow('img_path', img_path)
-    cv2.imshow('img_graph', img_graph)
-    cv2.imshow('original', img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # 3 shortest path examples
+    print("Generating shortest path examples")
+    lon_lat3 = (38.7178481,-9.1655077)
+    pos1 = ((100, 100), (400, 400))
+    pos2 = ((50, 400), (400, 350))
+    pos3 = ((380, 50), (30, 400))
+
+    img, r_graph = get_road_info(lon_lat3, 16, max_regularization_dist=5, res_zoom_upsample=0)
+    img_graph = graph.draw_graph(cv2.cvtColor(img, cv2.COLOR_GRAY2BGR), r_graph, edge_color=edge_color, node_color=node_color)
+    nodes = list(r_graph.get_all_nodes())
+
+    for posi, posf in [pos1, pos2, pos3]:
+        node_init = nodes[np.argmin([np.linalg.norm(np.array((node[1], node[0])) - posi) for node in nodes])]
+        node_end = nodes[np.argmin([np.linalg.norm(np.array((node[1], node[0])) - posf) for node in nodes])]
+        spt = r_graph.get_spt_dijkstra(node_init)
+        path = r_graph.get_path_from_spt(node_end, *spt)
+        img_path = graph.draw_path(cv2.cvtColor(img, cv2.COLOR_GRAY2BGR), path, edge_color=edge_color, node_color=node_color)
+        ims_to_save.append((f'path_ex_road_from_{posi}_to_{posf}', img_path))
+
+    # road edges
+    print("Generating road edge examples")
+    lon_lat4 = (38.7367256,-9.1388871)
+
+    for idx, lon_lat_ex in enumerate([lon_lat, lon_lat2, lon_lat3]):
+        img, _ = get_road_info(lon_lat_ex, 16, res_zoom_upsample=0)
+        edges = (get_edge_img(img)*255).astype(np.uint8)
+        ims_to_save.append((f'edges_ex_road_{idx}', edges))
+
+
+    # save all images
+    print("Saving all images")
+    img_dir = 'assets'
+
+    # save images
+    if not os.path.isdir(img_dir):
+        os.mkdir(img_dir)
+
+    for name, img in ims_to_save:
+        cv2.imwrite(os.path.join(img_dir, name + ".png"), img)
+
+    print("Done")
 
