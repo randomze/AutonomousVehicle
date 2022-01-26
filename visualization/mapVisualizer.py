@@ -55,7 +55,7 @@ class MapVisualizer:
 
 
     def car_collides_with_road(self, car_repr: CarVisualizer, square_window_side: int = 5) -> bool:
-        _, _, x, y, _, _ = car_repr.state
+        _, _, x, y, _ = car_repr.state
         admissible_block_mask_x = np.logical_and(
             self.block_positions[:, 0] > x - square_window_side, 
             self.block_positions[:, 0] < x + square_window_side

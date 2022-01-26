@@ -39,7 +39,7 @@ class Simulator:
         initial_waypoint_difference = self.trajectory_generator.path[1] - self.trajectory_generator.path[0]
         initial_heading = np.arctan2(initial_waypoint_difference[1], initial_waypoint_difference[0])
         self.initial_conditions = {
-            'car_ic': np.array([0, initial_heading, *self.trajectory_generator.path[0], 0, 0])
+            'car_ic': np.array([0, initial_heading, *self.trajectory_generator.path[0], 0])
         }
 
         self.img_saving_threads = []
