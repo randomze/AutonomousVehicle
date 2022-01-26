@@ -9,7 +9,7 @@ from visualization.carVisualizer import CarVisualizer
 from model.collisions import is_colliding
 
 class MapVisualizer:
-    def __init__(self, road_constants: dict, interp_method: Union[str, None] = 'none') -> None:
+    def __init__(self, road_constants: dict) -> None:
         self.lat = road_constants['lat']
         self.lon = road_constants['lon']
         self.zoom = road_constants['zoom']
@@ -27,15 +27,11 @@ class MapVisualizer:
         ym, yM = 0, self.meters_per_pixel*self.map.shape[0]
         sideX = xM - xm
         sideY = yM - ym
-        self.xm = xm - sideX/2
-        self.xM = xM - sideX/2
-        self.ym = ym - sideY/2 + self.meters_per_pixel
-        self.yM = yM - sideY/2 + self.meters_per_pixel
+        self.xm = xm - sideX/2 + self.meters_per_pixel
+        self.xM = xM - sideX/2 + self.meters_per_pixel
+        self.ym = ym - sideY/2
+        self.yM = yM - sideY/2
         self.extent = [self.xm, self.xM, self.ym, self.yM]
-
-        self.interp_method = interp_method
-
-        self.cmap = clrs.ListedColormap(['black', 'white'])
 
         self.block_positions, self.block_edges = self.load_road_blocks(self.road_edges, self.meters_per_pixel)
 
@@ -84,5 +80,5 @@ class MapVisualizer:
         return False
 
     def plot(self, ax: plt.Axes):
-        ax.imshow(self.map, interpolation=self.interp_method, extent=self.extent, cmap=self.cmap)
+        ax.imshow(self.map, extent=self.extent, cmap='gray')
 
