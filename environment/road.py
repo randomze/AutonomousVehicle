@@ -221,6 +221,7 @@ def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np
             return pickle.load(f)
 
     img = get_road_image(*args, **kwargs)
+    img = np.where(img > 0, 255, 0).astype(np.uint8)
     road_graph = graph.get_graph_from_binary_image((np.sum(img, 2) if len(img.shape) > 2 else img) > 0.5, max_regularization_dist = max_regularization_dist)
     with open(os.path.join(cache_dir, item_name + ".pkl"), "wb") as f:
         pickle.dump((img, road_graph), f)

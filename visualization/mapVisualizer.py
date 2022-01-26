@@ -29,8 +29,8 @@ class MapVisualizer:
         sideY = yM - ym
         self.xm = xm - sideX/2
         self.xM = xM - sideX/2
-        self.ym = ym - sideY/2
-        self.yM = yM - sideY/2
+        self.ym = ym - sideY/2 + self.meters_per_pixel
+        self.yM = yM - sideY/2 + self.meters_per_pixel
         self.extent = [self.xm, self.xM, self.ym, self.yM]
 
         self.interp_method = interp_method
