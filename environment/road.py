@@ -236,11 +236,22 @@ if __name__ == '__main__':
     node_color = (255, 0, 0)
 
     lon_lat = (38.7367256,-9.1388871)    
+    # map used for most simulations
+    img, _ = get_road_info(lon_lat, 16, max_regularization_dist=20, res_zoom_upsample=3)
+    ims_to_save.append(('sim_ex', img))
+
     # map for 4 different upsampling levels
     print("Generating map for 4 different upsampling levels")
-    for i in range(4):
+    rel_pos = (0.326, 0.505)
+    window_size_rel = (0.1, 0.1)
+    for i in range(0, 5):
         img, _ = get_road_info(lon_lat, 16, max_regularization_dist=20, res_zoom_upsample=i)
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        center_x = int(img.shape[1] * rel_pos[0])
+        center_y = int(img.shape[0] * rel_pos[1])
+        window_size_x = int(img.shape[1] * window_size_rel[0])
+        window_size_y = int(img.shape[0] * window_size_rel[1])
+        img = img[center_y - window_size_y // 2:center_y + window_size_y // 2, center_x - window_size_x // 2:center_x + window_size_x // 2]
         ims_to_save.append((f'upsample_ex_{i}', img))
 
     # road image, skeletonized and graph
