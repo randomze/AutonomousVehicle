@@ -240,7 +240,7 @@ if __name__ == '__main__':
     
     # example demonstrating shortest path calculation
     source, end = list(r_graph.connections.keys())[1], list(r_graph.connections.keys())[50]
-    parents, distances = r_graph.get_mst_dijkstra(source)
+    parents, distances = r_graph.get_spt_dijkstra(source)
     path = r_graph.get_path_from_mst(end, parents, distances)
 
     #print(graph)

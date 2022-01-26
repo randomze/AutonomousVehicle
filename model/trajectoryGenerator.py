@@ -55,8 +55,8 @@ class TrajectoryGenerator:
         final_node = nodes[np.argmin([np.linalg.norm(np.array(final_pixel) - np.array((node[1], node[0]))) for node in nodes])]
 
         # get the path from init_node to final_node
-        mst = self.graph.get_mst_dijkstra(init_node)
-        nodes_to_traverse = self.graph.get_path_from_mst(final_node, *mst)
+        spt = self.graph.get_spt_dijkstra(init_node)
+        nodes_to_traverse = self.graph.get_path_from_mst(final_node, *spt)
         points_to_traverse = [pixel_to_xy((node[1], node[0]), self.map.shape, self.meters_per_pixel) for node in nodes_to_traverse]
         points_to_traverse = points_to_traverse[1:-1]
         points_to_traverse.insert(0, init_point)

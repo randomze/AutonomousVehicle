@@ -57,14 +57,14 @@ class WeightedGraph:
         self.add_connection(node1, node2, self.connections[middle_node][node1] + self.connections[middle_node][node2])
         self.remove_connection(node1, middle_node)
         self.remove_connection(node2, middle_node)
-    def get_mst_dijkstra(self, source):
+    def get_spt_dijkstra(self, source):
         
         # hash self and source to get a unique key
         item_id = str(self) + str(source)
         item_id = item_id.encode('utf-8')        
         item_name = str(hashlib.sha224(item_id).hexdigest())
 
-        cache_dir = os.path.join('cache', 'mst_dijkstra')
+        cache_dir = os.path.join('cache', 'spt_dijkstra')
         if not os.path.isdir(cache_dir):
             os.mkdir(cache_dir)
         cache_file = os.path.join(cache_dir, item_name)
