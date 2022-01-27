@@ -28,7 +28,7 @@ def run_sims(settings_list: list[SimSettings]):
         print(f'Running simulation {idx+1}/{len(settings_list)}')
         sim = SimWrapperTests(settings)
         sim.simulate()
-        sim.save_data(file)
+        sim.save_data(file, settings=settings)
     print('\nDone')
 
 def fetch_sim_data(settings: SimSettings) -> SimData:
@@ -56,6 +56,10 @@ if __name__ == '__main__':
     sims_i_want = [SimSettings(), settings_lst[2]]
 
     sim_datas_i_want = [fetch_sim_data(s) for s in sims_i_want]
+
+    steering_vals = [d.settings.controller_gains['steering'] for d in sim_datas_i_want]
+
+    print(steering_vals)
 
 
 

@@ -3,6 +3,7 @@ import os
 import pickle
 import time
 from dataclasses import dataclass
+from typing import Union
 import imageio
 from model.carModel import CarModel
 from model.controller import Controller
@@ -15,9 +16,11 @@ from scipy.integrate import solve_ivp
 from visualization.carVisualizer import CarVisualizer
 from visualization.mapVisualizer import MapVisualizer
 from model.physics import MoI, CoM_position
+from sim_settings import SimSettings
 
 @dataclass
 class SimData:
+    settings : SimSettings
     trajectory: np.ndarray
 
     simout: list[SimInstant]
@@ -82,8 +85,9 @@ class Simulator:
             collisions      =collisions
         ))
 
-    def save_data(self, filename: str = 'sim_data.pkl'):
+    def save_data(self, filename: str = 'sim_data.pkl', settings: Union[SimSettings, None] = None):
         sim_data = SimData(
+            settings = settings,
             trajectory = self.trajectory_generator.path,
             simout = self.instants
         )
