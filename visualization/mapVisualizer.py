@@ -46,15 +46,15 @@ class MapVisualizer:
         block_edges = np.array([get_rectangle_corners(block, block_side, block_side) for block in block_positions])
         return block_positions, block_edges
 
-    def collision_counter(self, car_repr: CarVisualizer, square_window_side: int = 5) -> int:
-        self.is_currently_colliding = self.car_collides_with_road(car_repr, square_window_side)
+    def collision_counter(self, car_repr: CarVisualizer, square_window_side: int = 5, visualization: bool = False) -> int:
+        self.is_currently_colliding = self.car_collides_with_road(car_repr, square_window_side, visualization=visualization)
         if self.is_currently_colliding and not self.is_colliding:
             self.collision_count += 1
         self.is_colliding = self.is_currently_colliding
         return self.collision_count
 
 
-    def car_collides_with_road(self, car_repr: CarVisualizer, square_window_side: int = 5) -> bool:
+    def car_collides_with_road(self, car_repr: CarVisualizer, square_window_side: int = 5, visualization: bool = False) -> bool:
         _, _, x, y, _ = car_repr.state
         admissible_block_mask_x = np.logical_and(
             self.block_positions[:, 0] > x - square_window_side, 
@@ -71,7 +71,7 @@ class MapVisualizer:
         car_parts = np.array_split(car_rects, 4, 0)
         for car_part in car_parts:
             if is_colliding(car_part, *admissible_blocks):
-                if not self.is_colliding:
+                if visualization and not self.is_colliding:
                     ax = plt.gca()
                     ax.add_patch(plt.Polygon(car_part, closed=True, fill=False, edgecolor='red'))
                     for obj3 in admissible_blocks:

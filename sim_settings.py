@@ -60,7 +60,7 @@ class SimSettings:
     controller_gains: Dict = field(default_factory=def_controller_gains)
     traj_endpoints: tuple =((-5, 10), (-85, 100))
     energy_budget: float = 10000
-    goal_crossing_distance: float = -1.0
+    goal_crossing_distance: float = -2.54
 
     # visualization
     vis_window: tuple = ((-20, 20), (-20, 20))

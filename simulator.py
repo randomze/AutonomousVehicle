@@ -172,7 +172,7 @@ class Simulator:
                 self.update_data(sim_instant, car_state, car_output, sensors_output, controller_reference,
                                  work_force, self.energy_spent, self.collisions)
             
-            self.collisions = self.map_visualizer.collision_counter(self.car_visualizer)
+            self.collisions = self.map_visualizer.collision_counter(self.car_visualizer, visualization=self.visualization)
 
 
             if not self.visualization: continue
