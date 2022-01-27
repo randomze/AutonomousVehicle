@@ -1,5 +1,5 @@
+from __future__ import annotations
 import numpy as np
-import matplotlib.pyplot as plt
 
 class CarModel:
     def __init__(self, constants):
@@ -8,7 +8,6 @@ class CarModel:
         self.r_cm = constants['r_cm']
         self.delta_cm = constants['delta_cm']
         self.Izz = constants['Izz']
-        self.Izz_phi = constants['Izz_phi']
         self.idle_power = constants['idle_power']
         self.plot_x = []
         self.plot_y = []

@@ -1,8 +1,7 @@
-from typing import Union
-import time
+from __future__ import annotations
 import matplotlib.pyplot as plt
-import matplotlib.colors as clrs
 import numpy as np
+from performance.cache_utils import cached
 from environment import road, graph
 from visualization.utils import pixel_to_xy, get_rectangle_corners
 from visualization.carVisualizer import CarVisualizer
@@ -38,6 +37,7 @@ class MapVisualizer:
         self.is_colliding = False
         self.collision_count = 0
     
+    @cached(class_func=True, folder="road blocks")
     def load_road_blocks(self, road_edges: np.ndarray, meters_per_pixel: float, block_size_multiplier: float = 0.999) -> np.ndarray:
         block_pixels_x, block_pixels_y = np.where(road_edges > 0)
         block_pixels = np.stack((block_pixels_x, block_pixels_y), axis=1)

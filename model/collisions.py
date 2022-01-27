@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 
 def is_colliding(obj1, *objs):

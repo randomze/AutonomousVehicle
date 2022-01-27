@@ -1,12 +1,12 @@
-import os
+from __future__ import annotations
 import numpy as np
 import cv2
-import pickle
-import hashlib
+from performance.cache_utils import cached
 
 class WeightedGraph:
     def __init__(self):
         self.connections = {}
+
     def add_connection(self, node1, node2, weight=1):
         if node1 == node2:
             raise ValueError('Node1 cannot be the same as node2')
@@ -16,6 +16,7 @@ class WeightedGraph:
         if node2 not in self.connections:
             self.connections[node2] = {}
         self.connections[node2][node1] = weight
+
     def remove_connection(self, node1, node2):
         if node1 not in self.connections:
             return
@@ -23,56 +24,50 @@ class WeightedGraph:
             return
         del self.connections[node1][node2]
         del self.connections[node2][node1]
+
     def remove_node(self, node):
         if node not in self.connections:
             return
         for node2 in self.connections[node]:
             self.remove_connection(node, node2)
         del self.connections[node]
+
     def get_connections(self, node):
         if node not in self.connections:
             return []
         return self.connections[node].keys()
+
     def is_connected(self, node1, node2):
         if node1 not in self.connections:
             return False
         if node2 not in self.connections[node1]:
             return False
         return True
+
     def get_all_nodes(self):
         return self.connections.keys()
+
     def get_weight(self, node1, node2):
         if node1 not in self.connections:
             return None
         if node2 not in self.connections[node1]:
             return None
         return self.connections[node1][node2]
+
     def get_path_cost(self, path): # a path is a list of nodes
         cost = 0
         for i in range(len(path)-1):
             cost += self.get_weight(path[i], path[i+1])
         return cost
+
     def replace_node_with_edge(self, middle_node):
         node1, node2 = self.connections[middle_node]
         self.add_connection(node1, node2, self.connections[middle_node][node1] + self.connections[middle_node][node2])
         self.remove_connection(node1, middle_node)
         self.remove_connection(node2, middle_node)
+    
+    @cached(class_func=True, folder='shortest path trees')
     def get_spt_dijkstra(self, source):
-        
-        # hash self and source to get a unique key
-        item_id = str(self) + str(source)
-        item_id = item_id.encode('utf-8')        
-        item_name = str(hashlib.sha224(item_id).hexdigest())
-
-        cache_dir = os.path.join('cache', 'spt_dijkstra')
-        if not os.path.isdir(cache_dir):
-            os.mkdir(cache_dir)
-        cache_file = os.path.join(cache_dir, item_name)
-        if os.path.isfile(cache_file): # pickle file exists
-            with open(cache_file, 'rb') as f:
-                return pickle.load(f)
-
-
         # mark all nodes as unvisited
         unvisited_set = list(self.get_all_nodes())
         # initialize the tentative distance to all nodes as infinity
@@ -100,11 +95,8 @@ class WeightedGraph:
             if len(unvisited_set) == 0: break
             # find the node with the smallest tentative distance
             current_node = min(unvisited_set, key=lambda node: tentative_distances[node])
-        
-        # pickle the results
-        with open(cache_file, 'wb') as f:
-            pickle.dump((parents, tentative_distances), f)
         return parents, tentative_distances
+
     def get_path_from_spt(self, end_node, parents, distances):
         if distances[end_node] == float('inf'):
             return []

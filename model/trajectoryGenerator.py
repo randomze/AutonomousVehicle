@@ -1,5 +1,5 @@
+from __future__ import annotations
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.optimize
 import scipy.signal
 from environment import road, graph

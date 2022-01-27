@@ -1,13 +1,17 @@
+from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 
 class Controller:
 
-    def __init__(self, goal_crossing_distance: float = -1):
+    def __init__(self, gains: dict, goal_crossing_distance: float = -1):
         self.current_waypoint = 0
         self.trajectory = None
         self.last_position = None
         self.follower = WaypointFollower(goal_crossing_threshold=goal_crossing_distance)
+
+        self.gain_force = gains['force']
+        self.gain_steering = gains['steering']
 
         self.lines = []
 
@@ -35,9 +39,9 @@ class Controller:
 
         heading_body_error = np.arctan2(error_body_frame[2], error_body_frame[1]) - sensors_output[4]
 
-        self.force_apply = 1000 * velocity_error
+        self.force_apply = self.gain_force * velocity_error
 
-        steering_apply = 100 * heading_body_error
+        steering_apply = self.gain_steering * heading_body_error
 
         return np.array([self.force_apply, steering_apply])
 

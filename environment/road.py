@@ -1,12 +1,12 @@
+from __future__ import annotations
 from enum import Enum
-from typing import Union
+
+from performance.cache_utils import cached
 from . import graph
 import cv2
 import numpy as np
 import requests
 import os
-import pickle
-import hashlib
 
 def retrieve_api_key(key_file_name: str = "api.key", search_pardir = True) -> str:
     """Retrieve Google Maps API key from file.
@@ -201,6 +201,7 @@ def get_edge_img(binary_img: np.ndarray, border_type: BorderType = BorderType.FU
 
     return ret_img
 
+@cached(class_func=False, folder="roads")
 def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np.ndarray, graph.WeightedGraph]:
     """Get road image from Google Maps API and build road graph.
     Check documentation for get_road_image for arguments.
@@ -209,22 +210,10 @@ def get_road_info(*args, max_regularization_dist = np.inf, **kwargs) -> tuple[np
         *args: Arguments for get_road_image.
         **kwargs: Keyword arguments for get_road_image.
     """
-    cache_dir = "cache"
-    if not os.path.isdir(cache_dir):
-        os.mkdir(cache_dir)
-    item_id = str(args) + str(kwargs) + str(max_regularization_dist)
-    item_id = item_id.encode('utf-8')
-    
-    item_name = str(hashlib.sha224(item_id).hexdigest())
-    if os.path.exists(os.path.join(cache_dir, item_name + ".pkl")):
-        with open(os.path.join(cache_dir, item_name + ".pkl"), "rb") as f:
-            return pickle.load(f)
 
     img = get_road_image(*args, **kwargs)
     img = np.where(img == 255, 255, 0).astype(np.uint8)
     road_graph = graph.get_graph_from_binary_image((np.sum(img, 2) if len(img.shape) > 2 else img) > 0.5, max_regularization_dist = max_regularization_dist)
-    with open(os.path.join(cache_dir, item_name + ".pkl"), "wb") as f:
-        pickle.dump((img, road_graph), f)
 
     return img, road_graph
 

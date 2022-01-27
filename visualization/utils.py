@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 
 def get_rectangle_corners(bottom_left_corner, side_x, side_y):
