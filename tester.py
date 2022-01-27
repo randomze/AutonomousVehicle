@@ -6,8 +6,8 @@ from simulator import SimInstant, SimData, Simulator
 from sim_settings import SimSettings, def_car_constants, def_controller_gains
 
 sims_folder = 'sims'
-if not os.path.exists(sims_folder):
-    os.mkdir(sims_folder)
+if not os.path.exists(os.path.join(cache_dir, sims_folder)):
+    os.mkdir(os.path.join(cache_dir,sims_folder))
 
 class SimWrapperTests(Simulator):
     def __init__(self, settings: SimSettings):
