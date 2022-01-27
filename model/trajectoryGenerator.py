@@ -148,7 +148,7 @@ class TrajectoryGenerator:
                     current_distance = 0
                     current_link += 1
 
-        print(velocities)
+        #print(velocities)
 
         positions = self.path
         phis = np.zeros(self.path.shape[0])

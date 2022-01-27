@@ -2,6 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict
 from model.physics import CoM_position, MoI
+import hashlib
 
 
 # set default values for mass-related constants
@@ -42,7 +43,7 @@ def def_sensor_parameters():
 def def_controller_gains(force=1000, steering=100):
     return {
         'force': force,
-        'torque': steering,
+        'steering': steering,
     }
 
 
@@ -66,3 +67,6 @@ class SimSettings:
     visualization: bool = False
     real_time: bool = False
 
+    def __hash__(self) -> int:
+        id = str(self)
+        return int(hashlib.sha1(id.encode('utf-8')).hexdigest(), base=16)

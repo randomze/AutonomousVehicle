@@ -6,6 +6,8 @@ import hashlib
 cache_dir = 'cache'
 
 def cached(class_func: bool = False, folder: str = ""):
+    if not os.path.isdir(cache_dir): 
+        os.mkdir(cache_dir)
 
     def dec(func):
 

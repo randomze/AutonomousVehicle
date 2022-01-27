@@ -14,7 +14,6 @@ from scipy.integrate import solve_ivp
 
 from visualization.carVisualizer import CarVisualizer
 from visualization.mapVisualizer import MapVisualizer
-from environment.graph import WeightedGraph
 from model.physics import MoI, CoM_position
 
 @dataclass
@@ -121,16 +120,17 @@ class Simulator:
         sensors_output = np.array([0, 0])
         trajectory_output = np.array([0, 0])
         
-        fig = plt.figure()
-        ax: plt.Axes = fig.add_subplot(111)
-        fig.canvas.draw()
-        plt.show(block=False)
-        ax.set_xlabel('X [m]')
-        ax.set_ylabel('Y [m]')
-        self.map_visualizer.plot(ax)
-        info_string = ""
-        overlay = ax.text(0.05, 0.95, info_string, transform=ax.transAxes, fontsize=10, verticalalignment='top', color='y')
-        ti = time.time()
+        if self.visualization:
+            fig = plt.figure()
+            ax: plt.Axes = fig.add_subplot(111)
+            fig.canvas.draw()
+            plt.show(block=False)
+            ax.set_xlabel('X [m]')
+            ax.set_ylabel('Y [m]')
+            self.map_visualizer.plot(ax)
+            info_string = ""
+            overlay = ax.text(0.05, 0.95, info_string, transform=ax.transAxes, fontsize=10, verticalalignment='top', color='y')
+            ti = time.time()
 
         for instant in np.arange(self.sim_time, step=self.step_size_plot):
             t0 = time.time()
@@ -165,14 +165,14 @@ class Simulator:
             
             self.collisions = self.map_visualizer.collision_counter(self.car_visualizer)
 
+
+            if not self.visualization: continue
+
             info_string = f'Time: {sim_instant:.2f} s\n'
             info_string += f'Energy spent: {self.energy_spent:.2f} J\n'
             info_string += f'Energy budget: {self.energy_budget:.2f} J\n'
             info_string += f'Collisions: {self.collisions}\n'
             info_string += f'Velocity: {car_output[0]*3600/1000:.2f} km/h\n'
-
-            if not self.visualization: continue
-
             # Do some plots
             t1 = time.time()
             self.car_visualizer.plot(ax)
