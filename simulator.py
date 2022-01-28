@@ -147,7 +147,7 @@ class Simulator:
                 
                 car_state = solve_ivp(self.car_model.derivative, (sim_instant, sim_instant + self.step_size_sim), car_state, args=(car_input,), method='RK45').y[:,-1]
                 
-                # Saturate phi in order not to reach weird stuff
+                # Saturate phi to max turning angle
                 if car_state[4] < -np.pi/3:
                     car_state[4] = -np.pi/3
 
