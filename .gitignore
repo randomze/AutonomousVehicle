@@ -1,3 +1,6 @@
+# VSCode things
+.vscode/*
+
 # Mac Garbage
 .DS_Store
 
