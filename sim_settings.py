@@ -42,13 +42,14 @@ def def_sensor_parameters():
     return {
     }
 
-def def_controller_gains(force=1000, force_park=10, steering=100, deadzone_velocity_threshold=0.1, deadzone_continuity: bool = True):
+def def_controller_parameters(force=1000, force_park=10, steering=100, deadzone_velocity_threshold=0.1, deadzone_continuity: bool = True, goal_crossing_distance=-2.54):
     return {
         'force': force,
         'force_park': force_park,
         'steering': steering,
         'deadzone_velocity_threshold': deadzone_velocity_threshold,
         'deadzone_continuity': deadzone_continuity,
+        'goal_crossing_distance': goal_crossing_distance,
     }
 
 class TrajectoryPreset(Enum):
@@ -72,10 +73,9 @@ class SimSettings:
     car_constants: Dict = field(default_factory=def_car_constants) 
     road_constants: Dict = field(default_factory=def_road_constants)
     sensor_parameters: Dict = field(default_factory=def_sensor_parameters)
-    controller_gains: Dict = field(default_factory=def_controller_gains)
+    controller_parameters: Dict = field(default_factory=def_controller_parameters)
     traj_endpoints: tuple = TrajectoryPreset.Balanced1.value
     energy_budget: float = 10000
-    goal_crossing_distance: float = -2.54
 
     # visualization
     vis_window: tuple = ((-20, 20), (-20, 20))

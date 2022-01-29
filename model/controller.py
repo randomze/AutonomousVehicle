@@ -7,19 +7,21 @@ from model.physics import deadzone
 
 class Controller:
 
-    def __init__(self, gains: dict, L, goal_crossing_distance: float = -1):
+    def __init__(self, params: dict, L):
         self.current_waypoint = 0
         self.trajectory = None
         self.last_position = None
         self.L = L
-        self.follower = WaypointFollower(L, goal_crossing_threshold=goal_crossing_distance)
 
-        self.gain_force = gains['force']
-        self.gain_steering = gains['steering']
-        self.gain_force_park = gains['force_park']
+        self.gain_force = params['force']
+        self.gain_steering = params['steering']
+        self.gain_force_park = params['force_park']
 
-        self.deadzone_velocity = gains['deadzone_velocity_threshold']
-        self.continuous_deadzone = gains['deadzone_continuity']
+        self.deadzone_velocity = params['deadzone_velocity_threshold']
+        self.continuous_deadzone = params['deadzone_continuity']
+        self.goal_crossing_distance = params['goal_crossing_distance']
+
+        self.follower = WaypointFollower(L, goal_crossing_threshold=self.goal_crossing_distance)
 
         self.lines = []
 
@@ -36,8 +38,12 @@ class Controller:
         # Sum the car's length to the position
         current_position_fixed = current_position + np.array([L * np.cos(heading), L * np.sin(heading)])
 
-        target_velocity = trajectory_output[self.current_waypoint][0]
         current_velocity = sensors_output[0]
+        target_velocity = trajectory_output[self.current_waypoint][0]
+        max_velocity = trajectory_output[:, 0].max()
+
+        self.follower.goal_crossing_threshold = np.interp(current_velocity, [0, max_velocity], [0, self.goal_crossing_distance])
+
 
         (self.current_waypoint, goal_achieved) = self.follower.next_waypoint(
             trajectory_output[:, 2:4], current_position_fixed)

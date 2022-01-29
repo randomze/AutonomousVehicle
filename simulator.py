@@ -15,7 +15,7 @@ from scipy.integrate import solve_ivp
 
 from visualization.carVisualizer import CarVisualizer
 from visualization.mapVisualizer import MapVisualizer
-from sim_settings import SimSettings, def_car_constants, def_controller_gains, TrajectoryPreset
+from sim_settings import SimSettings, def_car_constants, def_controller_parameters, TrajectoryPreset
 
 
 @dataclass
@@ -42,8 +42,8 @@ class SimInstant:
 
 class Simulator:
     def __init__(
-            self, step_size_plot, step_size_sim, car_constants, map_constants, sensorParameters, controller_gains,
-            path: tuple, time: float, energy_budget, goal_crossing_distance: float = -1,
+            self, step_size_plot, step_size_sim, car_constants, map_constants, sensorParameters, controller_parameters,
+            path: tuple, time: float, energy_budget,
             vis_window: tuple = ((-20, 20),
                                  (-20, 20)),
             visualization: bool = True, real_time=False):
@@ -52,7 +52,7 @@ class Simulator:
         self.energy_budget = energy_budget
 
         self.car_model = CarModel(car_constants)
-        self.controller = Controller(controller_gains, self.car_model.L, goal_crossing_distance=goal_crossing_distance)
+        self.controller = Controller(controller_parameters, self.car_model.L)
         self.sensors = Sensors(sensorParameters)
         smoothen_window = 5
         self.trajectory_generator = TrajectoryGenerator(
@@ -194,7 +194,7 @@ class Simulator:
             info_string += f'Energy spent: {self.energy_spent:.2f} J\n'
             info_string += f'Energy budget: {self.energy_budget:.2f} J\n'
             info_string += f'Collisions: {self.collisions}\n'
-            info_string += f'Velocity: {car_output[0]*3600/1000:.2f} / {controller_reference[0]*3600/1000:.2f} km/h\n'
+            info_string += f'Velocity: {car_output[0]*3600/1000:.2f} / {trajectory_output[controller_reference][0]*3600/1000:.2f} km/h\n'
             # Do some plots
             t1 = time.time()
             self.car_visualizer.plot(ax)
@@ -219,7 +219,7 @@ class SimWrapperTests(Simulator):
     def __init__(self, settings: SimSettings):
         self.settings = settings
 
-        super().__init__(settings.step_size_plot, settings.step_size_sim, settings.car_constants, settings.road_constants, settings.sensor_parameters, settings.controller_gains, settings.traj_endpoints, settings.sim_time, settings.energy_budget, settings.goal_crossing_distance, settings.vis_window, settings.visualization, settings.real_time)
+        super().__init__(settings.step_size_plot, settings.step_size_sim, settings.car_constants, settings.road_constants, settings.sensor_parameters, settings.controller_parameters, settings.traj_endpoints, settings.sim_time, settings.energy_budget, settings.vis_window, settings.visualization, settings.real_time)
 
 
 if __name__ == "__main__":
@@ -236,7 +236,7 @@ if __name__ == "__main__":
         car_constants=def_car_constants(
             idle_power=0.1,
         ),
-        controller_gains=def_controller_gains(
+        controller_parameters=def_controller_parameters(
             deadzone_velocity_threshold=0.1,
             deadzone_continuity=True,
         ),
