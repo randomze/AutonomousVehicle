@@ -52,7 +52,7 @@ class Simulator:
         self.energy_budget = energy_budget
 
         self.car_model = CarModel(car_constants)
-        self.controller = Controller(controller_gains, goal_crossing_distance=goal_crossing_distance)
+        self.controller = Controller(controller_gains, self.car_model.L, goal_crossing_distance=goal_crossing_distance)
         self.sensors = Sensors(sensorParameters)
         smoothen_window = 5
         self.trajectory_generator = TrajectoryGenerator(
@@ -147,10 +147,12 @@ class Simulator:
                               fontsize=10, verticalalignment='top', color='y')
             ti = time.time()
 
+        goal_achieved = False
         for instant in np.arange(self.sim_time, step=self.step_size_plot):
             t0 = time.time()
             for sim_instant in np.arange(instant, instant + self.step_size_plot, self.step_size_sim):
-
+                if goal_achieved:
+                    return
                 car_input = controller_output
 
                 car_state = solve_ivp(self.car_model.derivative, (sim_instant, sim_instant + self.step_size_sim),
@@ -170,7 +172,7 @@ class Simulator:
 
                 trajectory_output = self.trajectory_generator.output(sim_instant)
                 controller_input = [sensors_output, trajectory_output]
-                controller_output = self.controller.output(sim_instant, controller_input)
+                controller_output, goal_achieved = self.controller.output(sim_instant, controller_input)
 
                 controller_reference = trajectory_output[self.controller.current_waypoint]
                 work_force = max(self.controller.force_apply, 0)
@@ -214,7 +216,7 @@ class Simulator:
 
 
 if __name__ == "__main__":
-    np.random.seed(0)
+    np.random.seed(1)
     road_constants = {
         'lat': 38.7367256,
         'lon': -9.1388871,
@@ -251,10 +253,11 @@ if __name__ == "__main__":
         'r_cm': com_r,
         'delta_cm': com_delta,
         'wheel_width': 0.1,
-        'idle_power': 1e2
+        'idle_power': 1e1
     }
     controller_gains = {
         'force': 1000,
+        'force_park': 10,
         'steering': 100,
     }
     sim = Simulator(
