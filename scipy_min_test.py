@@ -2,58 +2,57 @@ import numpy as np
 import scipy.optimize as spopt
 
 np.set_printoptions(precision=3)
+np.random.seed(23)
 
-E_budget = 10
-M = 1
+E_budget = 10e3
+mass = 1000
+N = 30
+idle_power = 1
 # lengths of paths
-s = np.array([3,4, 5,1, 34, 12, 1, 2])
-max_v_lims = np.array([10, 10, 1, 10, 10, 10, 10, 10])
-# set to above 0 just to avoid divisions by 0 
+s = np.random.uniform(1, 40, (N,))
+max_v_lims = np.random.uniform(1, 10, (N,))
+# set to above 0 just to avoid divisions by 0
 min_v_lims = np.ones_like(max_v_lims)*1e-6
-N = len(s)
 vi = 0
-vf = 0
 # optimization is done in middle_v vector which is [v_1, ..., v_(N-1)],
 # where v_i are the edge velocities in between each segment
-def fun(m_v):
-    v = np.block([vi, m_v, vf])
 
-    avg_v = (v[:-1]+v[1:])/2
-    t = np.divide(s, avg_v)
-    f = t.sum()
-    
-    # print(f"\tv {v}\n\tavg {avg_v})\n\tf {f}")
-    return f
+cost_scale = 256
 
-def total_E_spent(m_v):
-    v = np.block([vi, m_v, vf])
 
+def travel_time(path_velocities):  # Optimization cost, total time of travel
+    path_travel_times = np.divide(s, path_velocities)
+    return path_travel_times.sum()/cost_scale
+
+
+def jac(path_velocities):  # jacobian of travel time
+    return - np.divide(s, path_velocities**2)/cost_scale
+
+
+def total_E_spent(path_velocities):
+    v = np.block([vi, path_velocities])
     v_sqr = v**2
-    dif = (v_sqr[1:] - v_sqr[:-1])
-    
-    # print(dif)
+    diff = (v_sqr[1:] - v_sqr[:-1])
     # braking does not recuperate energy
-    dif = dif[dif>0]
-    # print(dif)
-    return M*dif.sum()/2
+    diff = diff[diff > 0]
+    return mass*diff.sum()/2 + travel_time(path_velocities)*idle_power*cost_scale
 
-cons = ({'type': 'eq', 'fun': lambda m_v: total_E_spent(m_v) - E_budget})
+
+cons = ({'type': 'eq', 'fun': lambda m_v: E_budget - total_E_spent(m_v)})
 # each velocity must respect the min and max limits of both its neighbor paths
-bnds = [(max(min_v_lims[i], min_v_lims[i+1]), min(max_v_lims[i], max_v_lims[i+1])) for i in range(N-1)]
+bnds = list(zip(min_v_lims, max_v_lims))
 
 
-ini_v = np.ones(N-1)
+ini_v = np.ones(N)
 
-sol = spopt.minimize(fun, ini_v, method='SLSQP', bounds=bnds,  constraints=cons)
+sol = spopt.minimize(travel_time, ini_v, method='SLSQP', jac=jac, bounds=bnds,
+                     constraints=cons, options={"maxiter": 3000})
 
 print(sol)
-v = np.block([vi, sol.x, vf])
-print((f'With vi = {vi}, vf = {vf}, E = {E_budget}, max speed limits = {max_v_lims} '
-        f'and M={M}, the obtained velocities are:\n\tv = {v}'))
+v = np.block([vi, sol.x])
+# print((f'With vi = {vi}, E = {E_budget}, max speed limits = {max_v_lims} '
+#    f'and M={mass}, the obtained velocities are:\n\tv = {v}'))
 
 
-max_v = np.sqrt(vi**2 + 2*E_budget/M)
+max_v = np.sqrt(vi**2 + 2*E_budget/mass)
 print(f"Max possible velocity with this energy and mass would be {max_v}")
-if vf > max_v:
-    print(f"ERROR: vf = {vf} is bigger than max possible velocity, so expect no solution")
-    
