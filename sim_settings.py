@@ -42,7 +42,7 @@ def def_sensor_parameters():
     return {
     }
 
-def def_controller_parameters(force=1000, force_park=10, steering=100, deadzone_velocity_threshold=0.1, deadzone_continuity: bool = True, goal_crossing_distance=-2.54):
+def def_controller_parameters(force=1000, force_park=1000, steering=100, deadzone_velocity_threshold=0.1, deadzone_continuity: bool = True, goal_crossing_distance=-2.54):
     return {
         'force': force,
         'force_park': force_park,

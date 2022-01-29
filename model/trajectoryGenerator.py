@@ -234,7 +234,7 @@ class TrajectoryGenerator:
             return mass*diff.sum()/2 + travel_time(path_velocities)*idle_power
 
         # Constraints
-        cons = ({'type': 'eq', 'fun': lambda path_velocities:  1 - total_E_spent(path_velocities)/E_budget})
+        cons = ({'type': 'ineq', 'fun': lambda path_velocities: E_budget - total_E_spent(path_velocities)})
         # each path_velocity must respect the min and max limits of both its neighbor paths
         bnds = list(zip(min_speeds, max_speeds))
         # initial guess at optimal velocities

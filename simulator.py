@@ -230,14 +230,14 @@ if __name__ == "__main__":
 
         traj_endpoints=TrajectoryPreset.VerySharpTurn.value,
 
-        energy_budget=10e4,
+        energy_budget=1e5,
         car_constants=def_car_constants(
             idle_power=0.1,
         ),
         controller_parameters=def_controller_parameters(
             deadzone_velocity_threshold=0.1,
             deadzone_continuity=True,
-            force=10
+            force=1000
         ),
 
         visualization=True,
