@@ -76,6 +76,10 @@ class Controller:
                 # in final waypoint target velocity is 0, stop on waypoint
                 self.force_apply = self.gain_force_park * error_body_frame[1]
 
+                if energy_spent > self.energy_budget: # the car ran out of energy
+                    velocity_error = current_velocity if current_velocity > 0 else 0
+                    self.force_apply = - self.gain_force_park * velocity_error
+
         return (np.array([self.force_apply, steering_apply]), goal_achieved)
 
     def plot(self, ax: plt.Axes, waypoint_window_lims: tuple = (10, 10),
