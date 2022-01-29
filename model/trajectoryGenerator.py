@@ -88,7 +88,7 @@ class TrajectoryGenerator:
         top_maxlim = top_maxlim_kmph/3.6
         bottom_maxlim = bottom_maxlim_kmph/3.6
         g = 9.8
-        max_deceleration = 0.1*g
+        max_deceleration = 0.25*g
         curve_r_to_speed_gain = 10 * vel_multiplier
         E_budget = self.energy_budget
 
