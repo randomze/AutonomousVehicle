@@ -12,7 +12,7 @@ n = 2
 com_r, com_delta = CoM_position(m, n)
 Izz = MoI(m, n)
 
-def def_car_constants(L=2.2, Lr=0.566, Lf=0.566, d=0.64, r=0.256, Length=3.332, Width=1.508, M=810.0, Izz=Izz, com_r=com_r, com_delta=com_delta, wheel_width=0.1, idle_power=1):
+def def_car_constants(L=2.2, Lr=0.566, Lf=0.566, d=0.64, r=0.256, Length=3.332, Width=1.508, M=810.0, Izz=Izz, com_r=com_r, com_delta=com_delta, wheel_width=0.1, idle_power=500):
     return {
         'L': L,
         'Lr': Lr,
@@ -75,7 +75,7 @@ class SimSettings:
     sensor_parameters: Dict = field(default_factory=def_sensor_parameters)
     controller_parameters: Dict = field(default_factory=def_controller_parameters)
     traj_endpoints: tuple = TrajectoryPreset.Balanced1.value
-    energy_budget: float = 10000
+    energy_budget: tuple = (10000, None)
 
     # visualization
     vis_window: tuple = ((-20, 20), (-20, 20))

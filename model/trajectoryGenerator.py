@@ -10,14 +10,13 @@ from performance.cache_utils import cached
 class TrajectoryGenerator:
 
     def __init__(
-            self, road_constants: dict, path: tuple, smoothen_window: int, energy_budget: float,
+            self, road_constants: dict, path: tuple, smoothen_window: int, energy_budget: tuple,
             vehicle_mass: float, idle_power: float):
         self.lat = road_constants['lat']
         self.lon = road_constants['lon']
         self.zoom = road_constants['zoom']
         self.upsampling = road_constants['upsampling']
         self.regularization = road_constants['regularization']
-        self.energy_budget = energy_budget
         self.vehicle_mass = vehicle_mass
         self.idle_power = idle_power
 
@@ -39,6 +38,29 @@ class TrajectoryGenerator:
         # Length of each path
         self.lengths = self._calc_path_lengths(positions=self.path)
 
+        max_energy_budget, max_velocity = energy_budget
+        if not max_energy_budget:
+            self.energy_budget = self._estimate_energy_budget(path_lengths=self.lengths,
+                                                              idle_power=self.idle_power,
+                                                              mass=self.vehicle_mass,
+                                                              max_velocity=max_velocity)
+            self.top_max_speed_kmh = max_velocity * 3.6
+            self.bottom_max_speed_kmh = max_velocity * 0.3 * 3.6
+        else:
+            self.energy_budget = max_energy_budget
+            self.top_max_speed_kmh = 30
+            self.bottom_max_speed_kmh = 7
+
+            estimation = self._estimate_energy_budget(path_lengths=self.lengths,
+                                                      idle_power=self.idle_power,
+                                                      mass=self.vehicle_mass,
+                                                      max_velocity=self.top_max_speed_kmh / 3.6)
+
+            ratio = estimation / self.energy_budget
+
+            if ratio > 1.5 or ratio < 0.5:
+                print('Difference between requested energy budget and recommended for max velocity is over 50%.')
+                
         self.states = self.goal_states()
 
         self.last_time_query_idx = 0
@@ -82,8 +104,8 @@ class TrajectoryGenerator:
 
     @cached(class_func=True, folder="trajectory generator goal states")
     def goal_states(self, vel_multiplier: float = 1.0):
-        top_maxlim_kmph = 30 * vel_multiplier
-        bottom_maxlim_kmph = 7 * vel_multiplier
+        top_maxlim_kmph = self.top_max_speed_kmh * vel_multiplier
+        bottom_maxlim_kmph = self.bottom_max_speed_kmh * vel_multiplier
         top_maxlim = top_maxlim_kmph/3.6
         bottom_maxlim = bottom_maxlim_kmph/3.6
         g = 9.8
@@ -249,6 +271,15 @@ class TrajectoryGenerator:
         velocities = np.block([sol.x, 0])
         return velocities
 
+    @staticmethod
+    def _estimate_energy_budget(path_lengths, idle_power, mass, max_velocity):
+        if max_velocity == 0:
+            return idle_power * 1000
+        estimated_time = path_lengths.sum() / max_velocity
+        estimated_idle_power = idle_power * estimated_time
+        estimated_kinetic_energy = 0.5 * mass * max_velocity**2
+
+        return estimated_kinetic_energy + estimated_idle_power
 
 # def get_normalized_times(positions: np.ndarray):
 #     times = np.zeros(positions.shape[0])

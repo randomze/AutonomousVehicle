@@ -52,14 +52,14 @@ class Simulator:
             visualization: bool = True, real_time=False):
         self.step_size_plot = step_size_plot
         self.step_size_sim = step_size_sim
-        self.energy_budget = energy_budget
 
         self.car_model = CarModel(car_constants)
-        self.controller = Controller(controller_parameters, self.car_model.L, energy_budget)
         self.sensors = Sensors(sensorParameters)
         smoothen_window = 5
         self.trajectory_generator = TrajectoryGenerator(
             map_constants, path, smoothen_window, energy_budget, self.car_model.M, self.car_model.idle_power)
+        self.controller = Controller(controller_parameters, self.car_model.L, self.trajectory_generator.energy_budget)
+        self.energy_budget = self.trajectory_generator.energy_budget
         self.car_visualizer = CarVisualizer(car_constants)
         self.map_visualizer = MapVisualizer(map_constants)
         self.energy_spent = 0
@@ -269,11 +269,11 @@ if __name__ == "__main__":
         step_size_sim=0.01,
         sim_time=100,
 
-        traj_endpoints=TrajectoryPreset.StraightWide.value,
+        traj_endpoints=TrajectoryPreset.SharpTurns.value,
 
-        energy_budget=1e2,
+        energy_budget=(None, 20),
         car_constants=def_car_constants(
-            idle_power=10,
+            idle_power=500,
         ),
         controller_parameters=def_controller_parameters(
             deadzone_velocity_threshold=0.1,
