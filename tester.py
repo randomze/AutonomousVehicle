@@ -1,4 +1,7 @@
 from __future__ import annotations
+import dataclasses
+import json
+import sys
 import os
 import pickle
 import multiprocessing 
@@ -19,8 +22,26 @@ def run_sims(settings_list: list[SimSettings], batch_size: int = -1):
 
     processes = []
     for settings in settings_list:
-        t = multiprocessing.Process(target=run_sim, args=(settings,))
+        key = str(hash(settings))
+        sim_folder  = os.path.join(cache_dir, sims_folder, key )
+        sim_data_file = os.path.join(sim_folder, 'sim_data.pkl')
+
+        if not os.path.exists(sim_folder):
+            os.mkdir(sim_folder)
+
+        if os.path.exists(sim_data_file):
+            continue
+
+        sim_settings_file = os.path.join(sim_folder, 'sim_settings.json')
+        with open(sim_settings_file, 'w') as f:
+            json.dump(dataclasses.asdict(settings) , f)
+
+        sim_stdout_file = os.path.join(sim_folder, 'out.txt')
+
+        t = multiprocessing.Process(target=run_sim, args=(settings, sim_data_file, sim_stdout_file))
         processes.append(t)
+
+    print(f"From {len(settings_list)} simulations, {len(settings_list) - len(processes)} were already done")
     
     for i in range(0, len(processes), batch_size):
         batch_ti = time.time()
@@ -32,29 +53,27 @@ def run_sims(settings_list: list[SimSettings], batch_size: int = -1):
         print(f'Executing {cur_batch_size} simulation{endchar}', end='\r')
         for t in processes[i:end_idx]:
             t.join()
-        print(f'Batch {(i//batch_size)+1}/{len(processes)//batch_size + len(processes)%batch_size} took {time.time() - batch_ti:.2f}s to run')
+        print(f'Batch {(i//batch_size)+1}/{len(processes)//batch_size + len(processes)%batch_size - 1} took {time.time() - batch_ti:.2f}s to run')
         batch_ti = time.time()
         
     print('\nDone')
 
-def run_sim(settings: SimSettings):
-    key = str(hash(settings))
-    file = os.path.join(sims_folder, key + '.pkl')
-
-    if os.path.exists(os.path.join(cache_dir, file)):
-        return
+def run_sim(settings: SimSettings, data_file: os.PathLike, stdout_file: os.PathLike = None):
+    if not stdout_file is None:
+        sys.stdout = open(stdout_file, 'w')
 
     sim = SimWrapperTests(settings)
     sim.simulate()
-    sim.save_data(file, settings=settings)
+    sim.save_data(data_file, settings=settings)
 
 def fetch_sim_data(settings: SimSettings) -> SimData:
     key = str(hash(settings))
-    file = os.path.join(cache_dir, sims_folder, key + '.pkl')
-    if not os.path.exists(file):
+    sim_folder  = os.path.join(cache_dir, sims_folder, key )
+    sim_data_file = os.path.join(sim_folder, 'sim_data.pkl')
+    if not os.path.exists(sim_data_file):
         print(f'Simulation {key} does not exist')
         return None
-    with open(file, 'rb') as f:
+    with open(sim_data_file, 'rb') as f:
         return pickle.load(f)
 
 if __name__ == '__main__':

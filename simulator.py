@@ -101,7 +101,7 @@ class Simulator:
             trajectory=self.trajectory_generator.path,
             simout=self.instants
         )
-        with open(os.path.join(self.cache_dir, filename), 'wb') as f:
+        with open(filename, 'wb') as f:
             pickle.dump(sim_data, f)
         if self.visualization:
             self.to_video()
