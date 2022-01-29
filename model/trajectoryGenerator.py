@@ -231,7 +231,7 @@ class TrajectoryGenerator:
         # initial guess at optimal velocities
         ini_v = np.ones(N)
         sol = scipy.optimize.minimize(cost, ini_v, method='SLSQP', jac=jac, bounds=bnds,
-                                      constraints=cons, options={"maxiter": 2000})
+                                      constraints=cons, options={"maxiter": 1e4})
         if not sol.success:
             print(bnds)
             print(sol)
