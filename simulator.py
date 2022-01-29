@@ -229,7 +229,7 @@ if __name__ == "__main__":
         step_size_sim=0.01,
         sim_time=100,
 
-        traj_endpoints=TrajectoryPreset.StraightWide.value,
+        traj_endpoints=TrajectoryPreset.SharpTurns.value,
 
         energy_budget=(None, 20),
         car_constants=def_car_constants(

@@ -44,9 +44,23 @@ class TrajectoryGenerator:
                                                               idle_power=self.idle_power,
                                                               mass=self.vehicle_mass,
                                                               max_velocity=max_velocity)
+            self.top_max_speed_kmh = max_velocity * 3.6
+            self.bottom_max_speed_kmh = max_velocity * 0.3 * 3.6
         else:
             self.energy_budget = max_energy_budget
+            self.top_max_speed_kmh = 30
+            self.bottom_max_speed_kmh = 7
 
+            estimation = self._estimate_energy_budget(path_lengths=self.lengths,
+                                                      idle_power=self.idle_power,
+                                                      mass=self.vehicle_mass,
+                                                      max_velocity=self.top_max_speed_kmh / 3.6)
+
+            ratio = estimation / self.energy_budget
+
+            if ratio > 1.5 or ratio < 0.5:
+                print('Difference between requested energy budget and recommended for max velocity is over 50%.')
+                
         self.states = self.goal_states()
 
         self.last_time_query_idx = 0
@@ -90,8 +104,8 @@ class TrajectoryGenerator:
 
     @cached(class_func=True, folder="trajectory generator goal states")
     def goal_states(self, vel_multiplier: float = 1.0):
-        top_maxlim_kmph = 30 * vel_multiplier
-        bottom_maxlim_kmph = 7 * vel_multiplier
+        top_maxlim_kmph = self.top_max_speed_kmh * vel_multiplier
+        bottom_maxlim_kmph = self.bottom_max_speed_kmh * vel_multiplier
         top_maxlim = top_maxlim_kmph/3.6
         bottom_maxlim = bottom_maxlim_kmph/3.6
         g = 9.8
