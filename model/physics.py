@@ -40,3 +40,16 @@ def MoI(m: int, n: int) -> float:
     Izz *= M/(m*n)
 
     return Izz
+
+def curvature(vertex: np.ndarray) -> float:
+    """Calculates the curvature of a vertex (defined by three points in space)
+    """
+    e_iminus1, e_i, e_iplus1 = vertex
+    v1 = e_i - e_iminus1
+    v2 = e_iplus1 - e_i
+    d1 = np.linalg.norm(v1)
+    d2 = np.linalg.norm(v2)
+    alpha_i = np.arccos(np.dot(v1, v2) / (d1 * d2))
+
+    return alpha_i / (d1 + d2)
+
