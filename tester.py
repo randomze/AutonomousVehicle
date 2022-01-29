@@ -35,7 +35,7 @@ def run_sims(settings_list: list[SimSettings], batch_size: int = -1):
         for t in processes[i:end_idx]:
             t.start()
         endchar = 's' if cur_batch_size > 1 else ''
-        print(f'Executing {cur_batch_size} command{endchar}', end='\r')
+        print(f'Executing {cur_batch_size} simulation{endchar}', end='\r')
         for t in processes[i:end_idx]:
             t.join()
         print(f'Batch {(i//batch_size)+1}/{len(processes)//batch_size + len(processes)%batch_size} took {time.time() - batch_ti:.2f}s to run')
