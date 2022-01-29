@@ -10,14 +10,13 @@ from performance.cache_utils import cached
 class TrajectoryGenerator:
 
     def __init__(
-            self, road_constants: dict, path: tuple, smoothen_window: int, energy_budget: float,
+            self, road_constants: dict, path: tuple, smoothen_window: int, energy_budget: tuple,
             vehicle_mass: float, idle_power: float):
         self.lat = road_constants['lat']
         self.lon = road_constants['lon']
         self.zoom = road_constants['zoom']
         self.upsampling = road_constants['upsampling']
         self.regularization = road_constants['regularization']
-        self.energy_budget = energy_budget
         self.vehicle_mass = vehicle_mass
         self.idle_power = idle_power
 
@@ -38,6 +37,15 @@ class TrajectoryGenerator:
         self.p_thetas = self.thetas[1:]
         # Length of each path
         self.lengths = self._calc_path_lengths(positions=self.path)
+
+        max_energy_budget, max_velocity = energy_budget
+        if not max_energy_budget:
+            self.energy_budget = self._estimate_energy_budget(path_lengths=self.lengths,
+                                                              idle_power=self.idle_power,
+                                                              mass=self.vehicle_mass,
+                                                              max_velocity=max_velocity)
+        else:
+            self.energy_budget = max_energy_budget
 
         self.states = self.goal_states()
 
@@ -249,6 +257,15 @@ class TrajectoryGenerator:
         velocities = np.block([sol.x, 0])
         return velocities
 
+    @staticmethod
+    def _estimate_energy_budget(path_lengths, idle_power, mass, max_velocity):
+        if max_velocity == 0:
+            return idle_power * 1000
+        estimated_time = path_lengths.sum() / max_velocity
+        estimated_idle_power = idle_power * estimated_time
+        estimated_kinetic_energy = 0.5 * mass * max_velocity**2
+
+        return estimated_kinetic_energy + estimated_idle_power
 
 # def get_normalized_times(positions: np.ndarray):
 #     times = np.zeros(positions.shape[0])
