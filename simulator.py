@@ -176,7 +176,7 @@ class Simulator:
 
                 controller_reference = trajectory_output[self.controller.current_waypoint]
                 work_force = max(self.controller.force_apply, 0)
-                self.energy_spent += (work_force * car_output[0]
+                self.energy_spent += (work_force * car_state[0]
                                       + self.car_model.idle_power) * self.step_size_sim
                 self.car_visualizer.set_state(car_state)
 
