@@ -10,7 +10,7 @@ import time
 import numpy as np
 from performance.cache_utils import cache_dir
 from simulator import SimInstant, SimData, SimWrapperTests
-from sim_settings import SimSettings, def_car_constants, def_controller_gains
+from sim_settings import SimSettings, def_car_constants, def_controller_parameters
 
 sims_folder = 'sims'
 if not os.path.exists(os.path.join(cache_dir, sims_folder)):
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     settings_lst = [
         SimSettings(), # default settings
         SimSettings(car_constants=def_car_constants(idle_power=10)),
-        SimSettings(controller_gains=def_controller_gains(steering=120))
+        SimSettings(controller_parameters=def_controller_parameters(steering=120))
     ]
 
 

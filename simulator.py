@@ -237,6 +237,7 @@ if __name__ == "__main__":
         controller_parameters=def_controller_parameters(
             deadzone_velocity_threshold=0.1,
             deadzone_continuity=True,
+            force=10
         ),
 
         visualization=True,
