@@ -55,7 +55,7 @@ class TrajectoryPreset(Enum):
     Corners = ((-290, 340), (-5, 300))
     SharpTurns = ((-30, -330), (120, -330))
     VerySharpTurn = ((-103, 135), (-103, 144))
-    StraightWide = ((-180, -250), (170, 355))
+    StraightWide = ((180, -250), (170, 355))
     StraightNarrow = ((-210, -365), (-323, 353))
     Balanced1 = ((-230, -205), (125, -3))
     Balanced2 = ((40, 185), (75, 45))
