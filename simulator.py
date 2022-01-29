@@ -260,8 +260,11 @@ if __name__ == "__main__":
         'force_park': 10,
         'steering': 100,
     }
+    sensor_parameters = {
+        'deadzone_velocity': 0.1,
+    }
     sim = Simulator(
-        plot_step, sim_step, car_constants, road_constants, None, controller_gains, (posi, posf),
+        plot_step, sim_step, car_constants, road_constants, sensor_parameters, controller_gains, (posi, posf),
         sim_time, energy_budget, goal_crossing_distance=goal_crossing_distance, vis_window=((-20, 20),
                                                                                             (-20, 20)),
         real_time=view_sim_realtime)
