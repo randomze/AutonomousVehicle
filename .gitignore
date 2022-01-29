@@ -4,6 +4,9 @@
 # Mac Garbage
 .DS_Store
 
+# pkl objects
+*.pkl
+
 # simulink things
 *.slxc
 slprj*

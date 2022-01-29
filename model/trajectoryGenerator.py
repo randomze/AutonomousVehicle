@@ -76,9 +76,9 @@ class TrajectoryGenerator:
         nodes_to_traverse = self.graph.get_path_from_spt(final_node, *spt)
         points_to_traverse = [pixel_to_xy((node[1], node[0]), self.map.shape, self.meters_per_pixel)
                               for node in nodes_to_traverse]
-        points_to_traverse = points_to_traverse[1:-1]
-        points_to_traverse.insert(0, init_point)
-        points_to_traverse.append(final_point)
+        points_to_traverse = points_to_traverse # [1:-1]
+        # points_to_traverse.insert(0, init_point)
+        # points_to_traverse.append(final_point)
 
         return points_to_traverse
 

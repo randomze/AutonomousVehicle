@@ -2,6 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict
 from model.physics import CoM_position, MoI
+from enum import Enum
 import hashlib
 
 
@@ -50,6 +51,16 @@ def def_controller_gains(force=1000, force_park=10, steering=100, deadzone_veloc
         'deadzone_continuity': deadzone_continuity,
     }
 
+class TrajectoryPreset(Enum):
+    Corners = ((-290, 340), (-5, 300))
+    SharpTurns = ((-30, -330), (120, -330))
+    VerySharpTurn = ((-103, 135), (-103, 144))
+    StraightWide = ((-180, -250), (170, 355))
+    StraightNarrow = ((-210, -365), (-323, 353))
+    Balanced1 = ((-230, -205), (125, -3))
+    Balanced2 = ((40, 185), (75, 45))
+    Balanced3 = ((303, -343), (275, -343))
+
 
 @dataclass(frozen=True)
 class SimSettings:
@@ -62,7 +73,7 @@ class SimSettings:
     road_constants: Dict = field(default_factory=def_road_constants)
     sensor_parameters: Dict = field(default_factory=def_sensor_parameters)
     controller_gains: Dict = field(default_factory=def_controller_gains)
-    traj_endpoints: tuple =((-5, 10), (-85, 100))
+    traj_endpoints: tuple = TrajectoryPreset.Balanced1.value
     energy_budget: float = 10000
     goal_crossing_distance: float = -2.54
 

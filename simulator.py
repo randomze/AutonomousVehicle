@@ -15,8 +15,7 @@ from scipy.integrate import solve_ivp
 
 from visualization.carVisualizer import CarVisualizer
 from visualization.mapVisualizer import MapVisualizer
-from model.physics import MoI, CoM_position
-from sim_settings import SimSettings, def_car_constants, def_controller_gains
+from sim_settings import SimSettings, def_car_constants, def_controller_gains, TrajectoryPreset
 
 
 @dataclass
@@ -229,7 +228,9 @@ if __name__ == "__main__":
         step_size_sim=0.01,
         sim_time=100,
 
-        energy_budget=10e3,
+        traj_endpoints=TrajectoryPreset.VerySharpTurn.value,
+
+        energy_budget=10e4,
         car_constants=def_car_constants(
             idle_power=0.1,
         ),
@@ -240,6 +241,7 @@ if __name__ == "__main__":
 
         visualization=True,
         real_time=True,
+        vis_window=((-30, 30), (-30, 30)),
     )
 
     sim = SimWrapperTests(settings)
