@@ -32,6 +32,7 @@ class SimInstant:
     car_state: np.ndarray
     car_state_v_cm: np.ndarray
     sensors_output: np.ndarray
+    trajectory_output: np.ndarray
     controller_reference: np.ndarray
 
     work_force: float
@@ -81,13 +82,14 @@ class Simulator:
 
         self.instants: list[SimInstant] = []
 
-    def update_data(self, time, car_state, car_state_v_cm, sensors_output, controller_reference,
-                    work_force, energy_spent, collisions):
+    def update_data(self, time, car_state, car_state_v_cm, sensors_output, trajectory_output,
+                    controller_reference, work_force, energy_spent, collisions):
         self.instants.append(SimInstant(
             time=time,
             car_state=car_state,
             car_state_v_cm=car_state_v_cm,
             sensors_output=sensors_output,
+            trajectory_output=trajectory_output,
             controller_reference=controller_reference,
             work_force=work_force,
             energy_spent=energy_spent,
@@ -173,14 +175,14 @@ class Simulator:
                 controller_input = [sensors_output, trajectory_output]
                 controller_output, goal_achieved = self.controller.output(sim_instant, controller_input)
 
-                controller_reference = trajectory_output[self.controller.current_waypoint]
+                controller_reference = self.controller.current_waypoint
                 work_force = max(self.controller.force_apply, 0)
                 self.energy_spent += (work_force * car_state[0]
                                       + self.car_model.idle_power) * self.step_size_sim
                 self.car_visualizer.set_state(car_state)
 
-                self.update_data(sim_instant, car_state, car_output, sensors_output, controller_reference,
-                                 work_force, self.energy_spent, self.collisions)
+                self.update_data(sim_instant, car_state, car_output, sensors_output, trajectory_output,
+                                 controller_reference, work_force, self.energy_spent, self.collisions)
 
             self.collisions = self.map_visualizer.collision_counter(
                 self.car_visualizer, visualization=self.visualization)
