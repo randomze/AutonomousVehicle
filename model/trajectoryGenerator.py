@@ -1,11 +1,10 @@
 from __future__ import annotations
-from importlib.resources import path
-from turtle import position
 import numpy as np
 import scipy.optimize
 import scipy.signal
 from environment import road, graph
 from visualization.utils import pixel_to_xy, xy_to_pixel
+from performance.cache_utils import cached
 
 
 class TrajectoryGenerator:
@@ -40,8 +39,7 @@ class TrajectoryGenerator:
         # Length of each path
         self.lengths = self._calc_path_lengths(positions=self.path)
 
-        self.states = None
-        self.goal_states()
+        self.states = self.goal_states()
 
         self.last_time_query_idx = 0
 
@@ -82,6 +80,7 @@ class TrajectoryGenerator:
 
         return points_to_traverse
 
+    @cached(class_func=True, folder="trajectory generator goal states")
     def goal_states(self, vel_multiplier: float = 1.0):
         top_maxlim_kmph = 30 * vel_multiplier
         bottom_maxlim_kmph = 7 * vel_multiplier
@@ -165,7 +164,7 @@ class TrajectoryGenerator:
         phis = np.zeros(self.path.shape[0])
         # phis_dot = np.zeros(self.path.shape[0])
 
-        self.states = np.column_stack((wp_velocities, self.thetas, positions, phis))
+        return np.column_stack((wp_velocities, self.thetas, positions, phis))
 
     def output(self, instant):
         return self.states

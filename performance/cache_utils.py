@@ -13,7 +13,7 @@ def cached(class_func: bool = False, folder: str = ""):
 
         def cached_func(*args, **kwargs):
             if class_func:
-                args_key = [args[0].__class__.__name__] + list(args[1:] if len(args) > 1 else [])
+                args_key = [args[0].__class__.__name__] + list(args[0].__dict__.values()) + list(args[1:] if len(args) > 1 else [])
             else:
                 args_key = args
             item_id = str(hashlib.sha224(pickle.dumps(args_key)).hexdigest()) + str(hashlib.sha224(pickle.dumps(kwargs)).hexdigest())
