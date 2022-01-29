@@ -7,11 +7,13 @@ from model.physics import deadzone
 
 class Controller:
 
-    def __init__(self, params: dict, L):
+    def __init__(self, params: dict, L, energy_budget: float):
         self.current_waypoint = 0
         self.trajectory = None
         self.last_position = None
         self.L = L
+
+        self.energy_budget = energy_budget
 
         self.gain_force = params['force']
         self.gain_steering = params['steering']
@@ -28,7 +30,7 @@ class Controller:
     
     def output(self, instant, input):
         # Separate input into components
-        sensors_output, trajectory_output = input
+        sensors_output, trajectory_output, energy_spent = input
         self.trajectory = trajectory_output
         current_position = sensors_output[2:4]
         heading = sensors_output[1]
@@ -40,6 +42,8 @@ class Controller:
 
         current_velocity = sensors_output[0]
         target_velocity = trajectory_output[self.current_waypoint][0]
+        target_velocity = target_velocity if energy_spent < self.energy_budget else 0
+
         max_velocity = trajectory_output[:, 0].max()
 
         self.follower.goal_crossing_threshold = np.interp(current_velocity, [0, max_velocity], [0, self.goal_crossing_distance])
@@ -65,10 +69,16 @@ class Controller:
             heading_body_error = np.arctan2(error_body_frame[2], error_body_frame[1]) - sensors_output[4]
 
             steering_apply = self.gain_steering * heading_body_error
+            self.force_apply = 0
             if target_velocity != 0:
                 self.force_apply = self.gain_force * deadzone(velocity_error, self.deadzone_velocity, self.continuous_deadzone) 
-            else:  # in final waypoint target velocity is 0, stop on waypoint
+            else:  
+                # in final waypoint target velocity is 0, stop on waypoint
                 self.force_apply = self.gain_force_park * error_body_frame[1]
+
+                if energy_spent > self.energy_budget: # the car ran out of energy
+                    velocity_error = current_velocity if current_velocity > 0 else 0
+                    self.force_apply = - self.gain_force_park * velocity_error
 
         return (np.array([self.force_apply, steering_apply]), goal_achieved)
 

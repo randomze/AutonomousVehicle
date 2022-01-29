@@ -48,14 +48,14 @@ class Simulator:
             visualization: bool = True, real_time=False):
         self.step_size_plot = step_size_plot
         self.step_size_sim = step_size_sim
-        self.energy_budget = energy_budget
 
         self.car_model = CarModel(car_constants)
-        self.controller = Controller(controller_parameters, self.car_model.L)
         self.sensors = Sensors(sensorParameters)
         smoothen_window = 5
         self.trajectory_generator = TrajectoryGenerator(
             map_constants, path, smoothen_window, energy_budget, self.car_model.M, self.car_model.idle_power)
+        self.controller = Controller(controller_parameters, self.car_model.L, self.trajectory_generator.energy_budget)
+        self.energy_budget = self.trajectory_generator.energy_budget
         self.car_visualizer = CarVisualizer(car_constants)
         self.map_visualizer = MapVisualizer(map_constants)
         self.energy_spent = 0
@@ -170,13 +170,14 @@ class Simulator:
                 sensors_output = self.sensors.output(sim_instant, sensors_input)
 
                 trajectory_output = self.trajectory_generator.output(sim_instant)
-                controller_input = [sensors_output, trajectory_output]
+                controller_input = [sensors_output, trajectory_output, self.energy_spent]
                 controller_output, goal_achieved = self.controller.output(sim_instant, controller_input)
 
                 controller_reference = self.controller.current_waypoint
                 work_force = max(self.controller.force_apply, 0)
                 self.energy_spent += (work_force * car_state[0]
                                       + self.car_model.idle_power) * self.step_size_sim
+
                 self.car_visualizer.set_state(car_state)
 
                 self.update_data(sim_instant, car_state, car_output, sensors_output,
@@ -228,7 +229,7 @@ if __name__ == "__main__":
         step_size_sim=0.01,
         sim_time=100,
 
-        traj_endpoints=TrajectoryPreset.VerySharpTurn.value,
+        traj_endpoints=TrajectoryPreset.StraightWide.value,
 
         energy_budget=(None, 20),
         car_constants=def_car_constants(
@@ -250,6 +251,8 @@ if __name__ == "__main__":
     try:
         sim.simulate()
     except KeyboardInterrupt:
-        ...
+        print('Simulation interrupted')
+    except:
+        print("Unexpected error ended simulation")
     finally:
         sim.save_data()
