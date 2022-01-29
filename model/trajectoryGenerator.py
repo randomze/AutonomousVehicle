@@ -139,7 +139,6 @@ class TrajectoryGenerator:
                 new_path_lengths[-1] += self.lengths[i]
             small_path_indeces[i] = len(new_path_lengths)-1
 
-        print(N, len(new_path_lengths), small_path_indeces)
         # optimize speeds on each path to minimise the time spent to reach the start of the final path
         # the final path is for stopping the car, it is not considered in this optimization
         path_lengths = np.array(new_path_lengths)
