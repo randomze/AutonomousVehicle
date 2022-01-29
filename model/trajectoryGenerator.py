@@ -123,8 +123,12 @@ class TrajectoryGenerator:
 
             max_speeds = [path_max_speed] + max_speeds
 
+        max_speeds = np.array(max_speeds)
+        # Round speed limits discrete values
+        k = 10  # number of values for speed limits (besides 0)
+        max_speeds = np.round(max_speeds*k/top_maxlim)*top_maxlim/k
         # Join paths with equal speed limits
-        equal_tol = top_maxlim/15
+        equal_tol = top_maxlim*1e-2
         new_path_lengths = [self.lengths[0]]
         new_max_speeds = [max_speeds[0]]
         # keep track of which new big path the old small ones correspond to
@@ -205,6 +209,7 @@ class TrajectoryGenerator:
     def _opt_speeds(v_i, path_lengths, min_speeds, max_speeds, mass, idle_power, E_budget):
         N = len(path_lengths)
         cost_scale = 256
+        print(N)
 
         def travel_time(path_velocities):  # Optimization cost, total time of travel
             path_travel_times = np.divide(path_lengths, path_velocities)
@@ -214,7 +219,12 @@ class TrajectoryGenerator:
             return travel_time(path_velocities)/cost_scale
 
         def jac(path_velocities):  # jacobian of travel time
-            return - np.divide(path_lengths, path_velocities**2)/cost_scale
+            jac = - np.divide(path_lengths, path_velocities**2)/cost_scale
+            return jac
+
+        # def hess(path_velocities):  # Hessian of travel time
+        #     hess = np.diag(2 * np.divide(path_lengths, path_velocities**3))
+        #     return hess / cost_scale
 
         def total_E_spent(path_velocities):
             v = np.block([v_i, path_velocities])
@@ -225,13 +235,13 @@ class TrajectoryGenerator:
             return mass*diff.sum()/2 + travel_time(path_velocities)*idle_power
 
         # Constraints
-        cons = ({'type': 'eq', 'fun': lambda path_velocities: total_E_spent(path_velocities) - E_budget})
+        cons = ({'type': 'eq', 'fun': lambda path_velocities:  1 - total_E_spent(path_velocities)/E_budget})
         # each path_velocity must respect the min and max limits of both its neighbor paths
         bnds = list(zip(min_speeds, max_speeds))
         # initial guess at optimal velocities
-        ini_v = np.ones(N)
+        ini_v = np.ones_like(min_speeds)
         sol = scipy.optimize.minimize(cost, ini_v, method='SLSQP', jac=jac, bounds=bnds,
-                                      constraints=cons, options={"maxiter": 1e4})
+                                      constraints=cons, options={"maxiter": 3000})
         if not sol.success:
             print(bnds)
             print(sol)
