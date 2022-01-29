@@ -2,12 +2,12 @@ import numpy as np
 import scipy.optimize as spopt
 
 np.set_printoptions(precision=3)
-np.random.seed(23)
+# np.random.seed(23)
 
 E_budget = 10e3
 mass = 1000
 N = 30
-idle_power = 1
+idle_power = 1e1
 # lengths of paths
 s = np.random.uniform(1, 40, (N,))
 max_v_lims = np.random.uniform(1, 10, (N,))
@@ -29,6 +29,11 @@ def jac(path_velocities):  # jacobian of travel time
     return - np.divide(s, path_velocities**2)/cost_scale
 
 
+def hess(path_velocities):  # Hessian of travel time
+    hess = np.diag(2 * np.divide(s, path_velocities**3))
+    return hess / cost_scale
+
+
 def total_E_spent(path_velocities):
     v = np.block([vi, path_velocities])
     v_sqr = v**2
@@ -38,14 +43,14 @@ def total_E_spent(path_velocities):
     return mass*diff.sum()/2 + travel_time(path_velocities)*idle_power*cost_scale
 
 
-cons = ({'type': 'eq', 'fun': lambda m_v: E_budget - total_E_spent(m_v)})
+cons = ({'type': 'ineq', 'fun': lambda m_v:  1 - total_E_spent(m_v)/E_budget})
 # each velocity must respect the min and max limits of both its neighbor paths
 bnds = list(zip(min_v_lims, max_v_lims))
 
 
 ini_v = np.ones(N)
 
-sol = spopt.minimize(travel_time, ini_v, method='SLSQP', jac=jac, bounds=bnds,
+sol = spopt.minimize(travel_time, ini_v, method='SLSQP', jac=jac, hess=hess, bounds=bnds,
                      constraints=cons, options={"maxiter": 3000})
 
 print(sol)
