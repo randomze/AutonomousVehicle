@@ -245,7 +245,7 @@ class TrajectoryGenerator:
         if not sol.success:
             print(bnds)
             print(sol)
-            raise
+            # raise ValueError("Optimization failed")
         # append final velocity for final path
         velocities = np.block([sol.x, 0])
         return velocities

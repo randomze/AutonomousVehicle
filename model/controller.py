@@ -2,6 +2,8 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 
+from model.physics import deadzone
+
 
 class Controller:
 
@@ -16,8 +18,12 @@ class Controller:
         self.gain_steering = gains['steering']
         self.gain_force_park = gains['force_park']
 
+        self.deadzone_velocity = gains['deadzone_velocity_threshold']
+        self.continuous_deadzone = gains['deadzone_continuity']
+
         self.lines = []
 
+    
     def output(self, instant, input):
         # Separate input into components
         sensors_output, trajectory_output = input
@@ -54,7 +60,7 @@ class Controller:
 
             steering_apply = self.gain_steering * heading_body_error
             if target_velocity != 0:
-                self.force_apply = self.gain_force * velocity_error
+                self.force_apply = self.gain_force * deadzone(velocity_error, self.deadzone_velocity, self.continuous_deadzone) 
             else:  # in final waypoint target velocity is 0, stop on waypoint
                 self.force_apply = self.gain_force_park * error_body_frame[1]
 

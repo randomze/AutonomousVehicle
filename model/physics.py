@@ -41,6 +41,12 @@ def MoI(m: int, n: int) -> float:
 
     return Izz
 
+def deadzone(param: float, threshold: float, continuous: bool = False):
+    if abs(param) < threshold:
+        return 0
+    else:
+        return param - threshold * np.sign(param) if continuous else param
+
 def curvature(vertex: np.ndarray) -> float:
     """Calculates the curvature of a vertex (defined by three points in space)
     """

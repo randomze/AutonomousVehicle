@@ -16,7 +16,7 @@ from scipy.integrate import solve_ivp
 from visualization.carVisualizer import CarVisualizer
 from visualization.mapVisualizer import MapVisualizer
 from model.physics import MoI, CoM_position
-from sim_settings import SimSettings
+from sim_settings import SimSettings, def_car_constants, def_controller_gains
 
 
 @dataclass
@@ -214,60 +214,35 @@ class Simulator:
             t4 = time.time()
             print(f' {t1-t0:.2f} - {t2-t1:.2f} - {t3-t2:.2f} - {t4-t3:.2f} - total: {t4-t0:.2f}  {instant:.2f}/{self.sim_time:.2f} s ({(instant+self.step_size_plot)/self.sim_time*100:.2f}%) real time: {time.time() - ti:.2f}', end='\n')
 
+class SimWrapperTests(Simulator):
+    def __init__(self, settings: SimSettings):
+        self.settings = settings
+
+        super().__init__(settings.step_size_plot, settings.step_size_sim, settings.car_constants, settings.road_constants, settings.sensor_parameters, settings.controller_gains, settings.traj_endpoints, settings.sim_time, settings.energy_budget, settings.goal_crossing_distance, settings.vis_window, settings.visualization, settings.real_time)
+
 
 if __name__ == "__main__":
     np.random.seed(1)
-    road_constants = {
-        'lat': 38.7367256,
-        'lon': -9.1388871,
-        'zoom': 16,
-        'upsampling': 3,
-        'regularization': 5,
-    }
 
-    posi = (-5, 10)
-    posf = (-85, 100)
-    sim_time = 100
-    energy_budget = 10e3
-    plot_step = 0.4
-    sim_step = 0.01
+    settings = SimSettings(
+        step_size_plot=0.2,
+        step_size_sim=0.01,
+        sim_time=100,
 
-    view_sim_realtime = True  # setting to false halves visualization overhead
+        energy_budget=10e3,
+        car_constants=def_car_constants(
+            idle_power=0.1,
+        ),
+        controller_gains=def_controller_gains(
+            deadzone_velocity_threshold=0.1,
+            deadzone_continuity=True,
+        ),
 
-    goal_crossing_distance = -2.54
+        visualization=True,
+        real_time=True,
+    )
 
-    m = 3
-    n = 2
-    com_r, com_delta = CoM_position(m, n)
-    Izz = MoI(m, n)
-    car_constants = {
-        'L': 2.2,
-        'Lr': 0.566,
-        'Lf': 0.566,
-        'd': 0.64,
-        'r': 0.256,
-        'Length': 3.332,
-        'Width': 1.508,
-        'M': 810.0,
-        'Izz': Izz,
-        'r_cm': com_r,
-        'delta_cm': com_delta,
-        'wheel_width': 0.1,
-        'idle_power': 1e1
-    }
-    controller_gains = {
-        'force': 1000,
-        'force_park': 10,
-        'steering': 100,
-    }
-    sensor_parameters = {
-        'deadzone_velocity': 0.1,
-    }
-    sim = Simulator(
-        plot_step, sim_step, car_constants, road_constants, sensor_parameters, controller_gains, (posi, posf),
-        sim_time, energy_budget, goal_crossing_distance=goal_crossing_distance, vis_window=((-20, 20),
-                                                                                            (-20, 20)),
-        real_time=view_sim_realtime)
+    sim = SimWrapperTests(settings)
 
     try:
         sim.simulate()

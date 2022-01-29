@@ -6,18 +6,12 @@ import time
 
 import numpy as np
 from performance.cache_utils import cache_dir
-from simulator import SimInstant, SimData, Simulator
+from simulator import SimInstant, SimData, SimWrapperTests
 from sim_settings import SimSettings, def_car_constants, def_controller_gains
 
 sims_folder = 'sims'
 if not os.path.exists(os.path.join(cache_dir, sims_folder)):
     os.mkdir(os.path.join(cache_dir,sims_folder))
-
-class SimWrapperTests(Simulator):
-    def __init__(self, settings: SimSettings):
-        self.settings = settings
-
-        super().__init__(settings.step_size_plot, settings.step_size_sim, settings.car_constants, settings.road_constants, settings.sensor_parameters, settings.controller_gains, settings.traj_endpoints, settings.sim_time, settings.energy_budget, settings.goal_crossing_distance, settings.vis_window, settings.visualization, settings.real_time)
 
 def run_sims(settings_list: list[SimSettings], batch_size: int = -1):
     if batch_size == -1:
