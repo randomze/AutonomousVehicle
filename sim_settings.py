@@ -40,9 +40,10 @@ def def_road_constants(lat=38.7367256, lon=-9.1388871, zoom=16, upsampling=3, re
 def def_sensor_parameters():
     return {}
 
-def def_controller_gains(force=1000, steering=100):
+def def_controller_gains(force=1000, force_park=10, steering=100):
     return {
         'force': force,
+        'force_park': force_park,
         'steering': steering,
     }
 
