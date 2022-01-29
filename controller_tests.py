@@ -33,8 +33,9 @@ def tracking_error(car_trajectory: np.ndarray, trajectory_output: np.ndarray, co
                 # compute the distance along the trajectory of the relative car position
                 distance_along_path = np.inner(relative_car_position, direction_vector)
 
-                # compute error to trajectory using pitagoras
-                tracking_error[index] = np.sqrt(np.linalg.norm(relative_car_position)**2 - distance_along_path**2)
+                # compute error to trajectory using pythagoras
+                tracking_error[index] = np.sqrt(max(np.linalg.norm(relative_car_position)**2 - distance_along_path**2, 0))
+
 
     return tracking_error
 

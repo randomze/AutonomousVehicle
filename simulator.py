@@ -23,6 +23,9 @@ class SimData:
     settings: SimSettings
     trajectory: np.ndarray
 
+    tracking_error_pos: np.ndarray
+    tracking_error_vel: np.ndarray
+
     simout: list[SimInstant]
 
 
@@ -33,6 +36,7 @@ class SimInstant:
     car_state_v_cm: np.ndarray
     sensors_output: np.ndarray
     controller_reference: np.ndarray
+    controller_actuation: np.ndarray
 
     work_force: float
     energy_spent: float
@@ -66,6 +70,9 @@ class Simulator:
         self.vis_window = vis_window
         self.realtime = real_time
 
+        self.tracking_error_vel = []
+        self.tracking_error_pos = []
+
         self.cache_dir = os.path.join('cache')
         self.image_dir = os.path.join(self.cache_dir, 'images')
         if not os.path.isdir(self.cache_dir):
@@ -82,22 +89,53 @@ class Simulator:
         self.instants: list[SimInstant] = []
 
     def update_data(self, time, car_state, car_state_v_cm, sensors_output,
-                    controller_reference, work_force, energy_spent, collisions):
+                    controller_reference, controller_actuation, work_force, energy_spent, collisions):
         self.instants.append(SimInstant(
             time=time,
             car_state=car_state,
             car_state_v_cm=car_state_v_cm,
             sensors_output=sensors_output,
             controller_reference=controller_reference,
+            controller_actuation=controller_actuation,
             work_force=work_force,
             energy_spent=energy_spent,
             collisions=collisions
         ))
 
+        self.tracking_error_vel.append(self.trajectory_generator.states[controller_reference] - car_state[0])
+        car_position = car_state[2:4]
+        reference_trajectory = self.trajectory_generator.states[:, 2:4]
+        if controller_reference == 0:
+            tracking_error = np.linalg.norm(reference_trajectory[controller_reference] - car_position)
+        else:
+            # get line uniting to previous waypoint
+            direction_vector = reference_trajectory[controller_reference, :] - reference_trajectory[controller_reference - 1, :]
+
+            # if it has length 0 (the waypoints lie on top of eachother) just measure the distance to the waypoint
+            if np.linalg.norm(direction_vector) == 0:
+                tracking_error = np.linalg.norm(reference_trajectory[controller_reference] - car_position)
+            # otherwise, measure the distance to the line
+            else:
+                # normalize direction vector
+                direction_vector = direction_vector / np.linalg.norm(direction_vector)
+
+                # get the car position relative to the previous waypoint
+                relative_car_position = car_position - reference_trajectory[controller_reference - 1, :]
+
+                # compute the distance along the trajectory of the relative car position
+                distance_along_path = np.inner(relative_car_position, direction_vector)
+
+                # compute error to trajectory using pythagoras
+                tracking_error = np.sqrt(max(np.linalg.norm(relative_car_position)**2 - distance_along_path**2, 0))
+        self.tracking_error_pos.append(tracking_error)
+
+
     def save_data(self, filename: str = 'sim_data.pkl', settings: Union[SimSettings, None] = None):
         sim_data = SimData(
             settings=settings,
-            trajectory=self.trajectory_generator.states,
+            trajectory=np.array(self.trajectory_generator.states),
+            tracking_error_pos=np.array(self.tracking_error_pos),
+            tracking_error_vel=np.array(self.tracking_error_vel),
             simout=self.instants
         )
         with open(filename, 'wb') as f:
@@ -180,8 +218,10 @@ class Simulator:
 
                 self.car_visualizer.set_state(car_state)
 
+
                 self.update_data(sim_instant, car_state, car_output, sensors_output,
-                                 controller_reference, work_force, self.energy_spent, self.collisions)
+                                 controller_reference, controller_output, work_force, self.energy_spent, self.collisions)
+
 
             self.collisions = self.map_visualizer.collision_counter(
                 self.car_visualizer, visualization=self.visualization)

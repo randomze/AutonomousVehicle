@@ -63,7 +63,7 @@ class TrajectoryPreset(Enum):
     Balanced3 = ((303, -343), (275, -343))
 
 
-@dataclass(frozen=True)
+@dataclass
 class SimSettings:
     # general simulation settings
     step_size_plot: float = 0.1
