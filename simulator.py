@@ -18,9 +18,10 @@ from visualization.mapVisualizer import MapVisualizer
 from model.physics import MoI, CoM_position
 from sim_settings import SimSettings
 
+
 @dataclass
 class SimData:
-    settings : SimSettings
+    settings: SimSettings
     trajectory: np.ndarray
 
     simout: list[SimInstant]
@@ -40,7 +41,12 @@ class SimInstant:
 
 
 class Simulator:
-    def __init__(self, step_size_plot, step_size_sim, car_constants, map_constants, sensorParameters, controller_gains, path: tuple, time: float, energy_budget, goal_crossing_distance: float = -1, vis_window: tuple = ((-20, 20), (-20, 20)), visualization: bool = True, real_time = False):
+    def __init__(
+            self, step_size_plot, step_size_sim, car_constants, map_constants, sensorParameters, controller_gains,
+            path: tuple, time: float, energy_budget, goal_crossing_distance: float = -1,
+            vis_window: tuple = ((-20, 20),
+                                 (-20, 20)),
+            visualization: bool = True, real_time=False):
         self.step_size_plot = step_size_plot
         self.step_size_sim = step_size_sim
         self.energy_budget = energy_budget
@@ -49,7 +55,8 @@ class Simulator:
         self.controller = Controller(controller_gains, goal_crossing_distance=goal_crossing_distance)
         self.sensors = Sensors(sensorParameters)
         smoothen_window = 5
-        self.trajectory_generator = TrajectoryGenerator(map_constants, path, time, smoothen_window, energy_budget)
+        self.trajectory_generator = TrajectoryGenerator(
+            map_constants, path, smoothen_window, energy_budget, self.car_model.M, self.car_model.idle_power)
         self.car_visualizer = CarVisualizer(car_constants)
         self.map_visualizer = MapVisualizer(map_constants)
         self.energy_spent = 0
@@ -62,8 +69,10 @@ class Simulator:
 
         self.cache_dir = os.path.join('cache')
         self.image_dir = os.path.join(self.cache_dir, 'images')
-        if not os.path.isdir(self.cache_dir): os.mkdir(self.cache_dir)
-        if not os.path.isdir(self.image_dir): os.mkdir(self.image_dir)
+        if not os.path.isdir(self.cache_dir):
+            os.mkdir(self.cache_dir)
+        if not os.path.isdir(self.image_dir):
+            os.mkdir(self.image_dir)
 
         initial_waypoint_difference = self.trajectory_generator.path[1] - self.trajectory_generator.path[0]
         initial_heading = np.arctan2(initial_waypoint_difference[1], initial_waypoint_difference[0])
@@ -71,28 +80,26 @@ class Simulator:
             'car_ic': np.array([0, initial_heading, *self.trajectory_generator.path[0], 0])
         }
 
-
         self.instants: list[SimInstant] = []
-
 
     def update_data(self, time, car_state, car_state_v_cm, sensors_output, controller_reference,
                     work_force, energy_spent, collisions):
         self.instants.append(SimInstant(
-            time                 =time,
-            car_state            =car_state,
-            car_state_v_cm       =car_state_v_cm,
-            sensors_output       =sensors_output,
-            controller_reference =controller_reference,
-            work_force           =work_force,
-            energy_spent         =energy_spent,
-            collisions           =collisions
+            time=time,
+            car_state=car_state,
+            car_state_v_cm=car_state_v_cm,
+            sensors_output=sensors_output,
+            controller_reference=controller_reference,
+            work_force=work_force,
+            energy_spent=energy_spent,
+            collisions=collisions
         ))
 
     def save_data(self, filename: str = 'sim_data.pkl', settings: Union[SimSettings, None] = None):
         sim_data = SimData(
-            settings = settings,
-            trajectory = self.trajectory_generator.path,
-            simout = self.instants
+            settings=settings,
+            trajectory=self.trajectory_generator.path,
+            simout=self.instants
         )
         with open(os.path.join(self.cache_dir, filename), 'wb') as f:
             pickle.dump(sim_data, f)
@@ -106,7 +113,7 @@ class Simulator:
             if os.path.isfile(os.path.join(self.image_dir, f'{iter:04d}.png')):
                 os.remove(os.path.join(self.image_dir, f'{iter:04d}.png'))
             raise
-    
+
     def to_video(self, video_name: str = 'simulation.mp4'):
         print('Saving video...')
         fps = int(1/self.step_size_plot)
@@ -126,7 +133,7 @@ class Simulator:
         controller_output = np.array([0, 0])
         sensors_output = np.array([0, 0])
         trajectory_output = np.array([0, 0])
-        
+
         if self.visualization:
             fig = plt.figure()
             ax: plt.Axes = fig.add_subplot(111)
@@ -136,7 +143,8 @@ class Simulator:
             ax.set_ylabel('Y [m]')
             self.map_visualizer.plot(ax)
             info_string = ""
-            overlay = ax.text(0.05, 0.95, info_string, transform=ax.transAxes, fontsize=10, verticalalignment='top', color='y')
+            overlay = ax.text(0.05, 0.95, info_string, transform=ax.transAxes,
+                              fontsize=10, verticalalignment='top', color='y')
             ti = time.time()
 
         for instant in np.arange(self.sim_time, step=self.step_size_plot):
@@ -144,9 +152,10 @@ class Simulator:
             for sim_instant in np.arange(instant, instant + self.step_size_plot, self.step_size_sim):
 
                 car_input = controller_output
-                
-                car_state = solve_ivp(self.car_model.derivative, (sim_instant, sim_instant + self.step_size_sim), car_state, args=(car_input,), method='RK45').y[:,-1]
-                
+
+                car_state = solve_ivp(self.car_model.derivative, (sim_instant, sim_instant + self.step_size_sim),
+                                      car_state, args=(car_input,), method='RK45').y[:, -1]
+
                 # Saturate phi to max turning angle
                 if car_state[4] < -np.pi/3:
                     car_state[4] = -np.pi/3
@@ -165,23 +174,24 @@ class Simulator:
 
                 controller_reference = trajectory_output[self.controller.current_waypoint]
                 work_force = max(self.controller.force_apply, 0)
-                self.energy_spent += (work_force * car_output[0] 
-                                    + self.car_model.idle_power) * self.step_size_sim
+                self.energy_spent += (work_force * car_output[0]
+                                      + self.car_model.idle_power) * self.step_size_sim
                 self.car_visualizer.set_state(car_state)
 
                 self.update_data(sim_instant, car_state, car_output, sensors_output, controller_reference,
                                  work_force, self.energy_spent, self.collisions)
-            
-            self.collisions = self.map_visualizer.collision_counter(self.car_visualizer, visualization=self.visualization)
 
+            self.collisions = self.map_visualizer.collision_counter(
+                self.car_visualizer, visualization=self.visualization)
 
-            if not self.visualization: continue
+            if not self.visualization:
+                continue
 
             info_string = f'Time: {sim_instant:.2f} s\n'
             info_string += f'Energy spent: {self.energy_spent:.2f} J\n'
             info_string += f'Energy budget: {self.energy_budget:.2f} J\n'
             info_string += f'Collisions: {self.collisions}\n'
-            info_string += f'Velocity: {car_output[0]*3600/1000:.2f} km/h\n'
+            info_string += f'Velocity: {car_output[0]*3600/1000:.2f} / {controller_reference[0]*3600/1000:.2f} km/h\n'
             # Do some plots
             t1 = time.time()
             self.car_visualizer.plot(ax)
@@ -202,7 +212,9 @@ class Simulator:
             t4 = time.time()
             print(f' {t1-t0:.2f} - {t2-t1:.2f} - {t3-t2:.2f} - {t4-t3:.2f} - total: {t4-t0:.2f}  {instant:.2f}/{self.sim_time:.2f} s ({(instant+self.step_size_plot)/self.sim_time*100:.2f}%) real time: {time.time() - ti:.2f}', end='\n')
 
+
 if __name__ == "__main__":
+    np.random.seed(0)
     road_constants = {
         'lat': 38.7367256,
         'lon': -9.1388871,
@@ -210,15 +222,15 @@ if __name__ == "__main__":
         'upsampling': 3,
         'regularization': 5,
     }
-    
+
     posi = (-5, 10)
     posf = (-85, 100)
     sim_time = 100
-    energy_budget = 10000
+    energy_budget = 10e3
     plot_step = 0.4
     sim_step = 0.01
 
-    view_sim_realtime = True # setting to false halves visualization overhead
+    view_sim_realtime = True  # setting to false halves visualization overhead
 
     goal_crossing_distance = -2.54
 
@@ -239,14 +251,18 @@ if __name__ == "__main__":
         'r_cm': com_r,
         'delta_cm': com_delta,
         'wheel_width': 0.1,
-        'idle_power' : 1
-    }  
+        'idle_power': 1e2
+    }
     controller_gains = {
         'force': 1000,
         'steering': 100,
     }
-    sim = Simulator(plot_step, sim_step, car_constants, road_constants, None, controller_gains, (posi, posf), sim_time, energy_budget, goal_crossing_distance=goal_crossing_distance, vis_window=((-20, 20), (-20, 20)), real_time=view_sim_realtime)
-    
+    sim = Simulator(
+        plot_step, sim_step, car_constants, road_constants, None, controller_gains, (posi, posf),
+        sim_time, energy_budget, goal_crossing_distance=goal_crossing_distance, vis_window=((-20, 20),
+                                                                                            (-20, 20)),
+        real_time=view_sim_realtime)
+
     try:
         sim.simulate()
     except KeyboardInterrupt:
