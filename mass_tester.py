@@ -77,7 +77,7 @@ def get_cost(bundle: SimBundle):
 
     return errors_pos, errors_vel, errors_vel_abs, completion_time, max_actuation_force, max_actuation_steering
 
-def cost_fcn(args, gains: Collection = (1, 1, 1, 1, 1e-4, 1/20)):
+def cost_fcn(args, gains: Collection):
     if not isinstance(args, Collection):
         if args == np.inf:
             return np.inf

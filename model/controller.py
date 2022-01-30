@@ -13,6 +13,8 @@ class Controller:
         self.last_position = None
         self.L = L
 
+        self.goal_achieved = False
+
         self.energy_budget = energy_budget
 
         self.gain_force = params['force']
@@ -29,6 +31,11 @@ class Controller:
 
     
     def output(self, instant, input):
+        if self.goal_achieved:
+            force_apply = 0
+            steering_apply = 0
+            return (np.array([force_apply, steering_apply]), self.goal_achieved)
+
         # Separate input into components
         sensors_output, trajectory_output, energy_spent = input
         self.trajectory = trajectory_output
@@ -49,41 +56,39 @@ class Controller:
         self.follower.goal_crossing_threshold = np.interp(current_velocity, [0, max_velocity], [0, self.goal_crossing_distance])
 
 
-        (self.current_waypoint, goal_achieved) = self.follower.next_waypoint(
+        self.current_waypoint= self.follower.next_waypoint(
             trajectory_output[:, 2:4], current_position_fixed)
-        if goal_achieved:
-            self.force_apply = -5000*current_velocity
-            steering_apply = 0
-            if abs(current_velocity) > 0.1:
-                goal_achieved = False
-        else:
-            current_error = trajectory_output[self.current_waypoint] - sensors_output
-            velocity_error = current_error[0]
-            current_error = current_error[1:4]
+            
+        current_error = trajectory_output[self.current_waypoint] - sensors_output
+        velocity_error = current_error[0]
+        current_error = current_error[1:4]
 
-            body_frame_rotation = np.array([[1, 0, 0],
-                                            [0, np.cos(heading), np.sin(heading)],
-                                            [0, -np.sin(heading), np.cos(heading)]])
-            error_body_frame = body_frame_rotation @ current_error
+        body_frame_rotation = np.array([[1, 0, 0],
+                                        [0, np.cos(heading), np.sin(heading)],
+                                        [0, -np.sin(heading), np.cos(heading)]])
+        error_body_frame = body_frame_rotation @ current_error
 
-            heading_body_error = np.arctan2(error_body_frame[2], error_body_frame[1]) - sensors_output[4]
+        heading_body_error = np.arctan2(error_body_frame[2], error_body_frame[1]) - sensors_output[4]
 
-            steering_apply = self.gain_steering * heading_body_error
-            self.force_apply = 0
-            if target_velocity != 0:
-                self.force_apply = self.gain_force * deadzone(velocity_error, self.deadzone_velocity, self.continuous_deadzone) 
-            else:  
-                # in final waypoint target velocity is 0, stop on waypoint
-                self.force_apply = self.gain_force_park * error_body_frame[1]
+        steering_apply = self.gain_steering * heading_body_error
+        force_apply = 0
+        if target_velocity != 0:
+            force_apply = self.gain_force * deadzone(velocity_error, self.deadzone_velocity, self.continuous_deadzone) 
+        else:  
+            # in final waypoint target velocity is 0, stop on waypoint
+            position_error = error_body_frame[1]
+            velocity_reference = 0.1 * position_error
+            force_apply = self.gain_force * (velocity_reference - sensors_output[0])
 
-                if energy_spent > self.energy_budget: # the car ran out of energy
-                    velocity_error = current_velocity if current_velocity > 0 else 0
-                    self.force_apply = - self.gain_force_park * velocity_error
+            if current_velocity < 0.001:
+                self.goal_achieved = True
 
-                if current_velocity < 0.001:
-                    goal_achieved = True
+        if energy_spent > self.energy_budget: # the car ran out of energy
+            velocity_error = current_velocity if current_velocity > 0 else 0
+            force_apply = - self.gain_force_park * velocity_error
 
-        return (np.array([self.force_apply, steering_apply]), goal_achieved)
+
+        return (np.array([force_apply, steering_apply]), self.goal_achieved)
 
     def plot(self, ax: plt.Axes, waypoint_window_lims: tuple = (10, 10),
              cur_color: str = 'r', nei_color: str = 'b', zorder=0):
@@ -119,7 +124,6 @@ class WaypointFollower:
         self.goal = {}  # index of current waypoint to follow for each path
         self.goal_crossing_threshold = goal_crossing_threshold
         self.L = L
-        self.achieved = {}
 
     def next_waypoint(self, path: np.ndarray, current_position: np.ndarray):
         """Returns the next waypoint to follow for the given path and current position.
@@ -127,18 +131,11 @@ class WaypointFollower:
         path_b = path.tobytes()
         if path_b not in self.goal:  # don't know this path, add it and start following
             self.goal[path_b] = 0
-            self.achieved[path_b] = False
 
-        if not self.achieved[path_b]:
-            while self.crossed_goal(path, current_position):
-                if self.goal[path_b] == len(path)-1:
-                    self.achieved[path_b] = True
-                    print("Final waypoint reached")
-                    return (self.goal[path_b], self.achieved[path_b])
-                else:
-                    self.goal[path_b] += 1
+        while self.goal[path_b] != len(path)-1 and self.crossed_goal(path, current_position) :
+            self.goal[path_b] += 1
 
-        return (self.goal[path_b], self.achieved[path_b])
+        return self.goal[path_b]
 
     def crossed_goal(self, path: np.ndarray, current_position: np.ndarray):
         path_b = path.tobytes()

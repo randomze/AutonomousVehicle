@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 import pickle
+import re
 import time
 from dataclasses import dataclass
 from typing import Union
@@ -46,9 +47,11 @@ class Simulator:
     def __init__(self, settings: SimSettings):
         self.step_size_plot = settings.step_size_plot
         self.step_size_sim = settings.step_size_sim
+        self.final_time_max = settings.sim_time
+        smoothen_window = 5
+        self.seconds_to_film_after_end = 5
 
         self.car_model = CarModel(settings.car_constants)
-        smoothen_window = 5
         self.trajectory_generator = TrajectoryGenerator(
             settings.road_constants, settings.traj_endpoints, smoothen_window, settings.energy_budget, self.car_model.M, self.car_model.idle_power)
         self.controller = Controller(settings.controller_parameters, self.car_model.L, self.trajectory_generator.energy_budget)
@@ -181,12 +184,21 @@ class Simulator:
         for instant in np.arange(self.sim_time, step=self.step_size_plot):
             t0 = time.time()
             for sim_instant in np.arange(instant, instant + self.step_size_plot, self.step_size_sim):
-                if goal_achieved:
-                    return
-                car_input = controller_output
 
-                car_state = solve_ivp(self.car_model.derivative, (sim_instant, sim_instant + self.step_size_sim),
-                                      car_state, args=(car_input,), method='RK45').y[:, -1]
+                if sim_instant > self.final_time_max:
+                    return
+                
+                # when the simulation is finished, stop the dynamic simulation
+                # but keep the visualization
+                if goal_achieved:
+                    self.final_time_max = sim_instant + self.seconds_to_film_after_end
+                    car_state[0] = 0
+                    self.car_model.idle_power = 0
+                else: 
+                    car_input = controller_output
+
+                    car_state = solve_ivp(self.car_model.derivative, (sim_instant, sim_instant + self.step_size_sim),
+                                        car_state, args=(car_input,), method='RK45').y[:, -1]
 
                 # Saturate phi to max turning angle
                 if car_state[4] < -np.pi/3:
@@ -206,7 +218,7 @@ class Simulator:
                 if self.energy_spent >= self.energy_budget:
                     self.car_model.idle_power = 0
 
-                work_force = max(self.controller.force_apply, 0)
+                work_force = max(controller_output[0], 0)
                 self.energy_spent += (work_force * car_state[0]
                                       + self.car_model.idle_power) * self.step_size_sim
 
@@ -259,7 +271,7 @@ if __name__ == "__main__":
         traj_endpoints=TrajectoryPreset.SharpTurns.value,
 
         # visualization parameters
-        step_size_plot=0.1,
+        step_size_plot=0.5,
         visualization=True,
         real_time=True,
         vis_window=((-30, 30), (-30, 30)),
@@ -270,7 +282,7 @@ if __name__ == "__main__":
             force=733.33,
             goal_crossing_distance=-2.0
         ),
-        energy_budget=(None, 30/3.6)
+        energy_budget=(1000, None)
     )
 
     sim = Simulator(settings)

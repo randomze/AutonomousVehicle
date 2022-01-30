@@ -11,7 +11,7 @@ class TrajectoryGenerator:
 
     def __init__(
             self, road_constants: dict, path: tuple, smoothen_window: int, energy_budget: tuple,
-            vehicle_mass: float, idle_power: float):
+            vehicle_mass: float, idle_power: float, energy_reserve_ratio: float = 0.3):
         self.lat = road_constants['lat']
         self.lon = road_constants['lon']
         self.zoom = road_constants['zoom']
@@ -63,7 +63,8 @@ class TrajectoryGenerator:
                 print('Recommended energy budget:', estimation)
                 print('Requested energy budget:', self.energy_budget)
                 
-        self.states = self.goal_states(budget_multiplier=0.9)
+        # budget multiplier account for the fact that the energy budget is not exact
+        self.states = self.goal_states(budget_multiplier=1-energy_reserve_ratio)
 
         self.last_time_query_idx = 0
 
@@ -265,10 +266,10 @@ class TrajectoryGenerator:
         ini_v = np.ones_like(min_speeds)
         sol = scipy.optimize.minimize(cost, ini_v, method='SLSQP', jac=jac, bounds=bnds,
                                       constraints=cons, options={"maxiter": 3000})
-        if not sol.success:
+        if not sol.success: # print some info if optimization failed
             print(bnds)
             print(sol)
-            # raise ValueError("Optimization failed")
+
         # append final velocity for final path
         velocities = np.block([sol.x, 0])
         return velocities
@@ -281,12 +282,4 @@ class TrajectoryGenerator:
         estimated_idle_power = idle_power * estimated_time
         estimated_kinetic_energy = 0.5 * mass * max_velocity**2
 
-        return estimated_kinetic_energy + estimated_idle_power
-
-# def get_normalized_times(positions: np.ndarray):
-#     times = np.zeros(positions.shape[0])
-
-#     for i in range(2, positions.shape[0]):
-#         times[i-1] = times[i-2] + np.linalg.norm(positions[i] - positions[i-1])
-#     times[-1] = times[-2]  # gotta figure this one out
-#     return times/np.max(times)
+        return (estimated_kinetic_energy + estimated_idle_power) * 1.3 # multiplier to account for losses which are unnaccounted for (braking)

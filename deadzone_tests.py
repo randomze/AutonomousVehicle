@@ -2,14 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from tester import run_sims, fetch_sim_data
-from sim_settings import SimSettings, def_car_constants, def_controller_gains
+from sim_settings import SimSettings, def_car_constants, def_controller_parameters
 
 
 if __name__=='__main__':
     settings_deadzones = [
         SimSettings(
             sim_time=200,
-            controller_gains=def_controller_gains(
+            controller_parameters=def_controller_parameters(
                 deadzone_continuity=True,
                 deadzone_velocity_threshold=val
             )
@@ -27,7 +27,7 @@ if __name__=='__main__':
     car_state_data = [[instant.car_state_v_cm for instant in data.simout] for data in simulation_data]
     reference_data = [[instant.controller_reference for instant in data.simout] for data in simulation_data]
 
-    deadzone_velocity_threshold_values = [data.settings.controller_gains['deadzone_velocity_threshold'] for data in simulation_data]
+    deadzone_velocity_threshold_values = [data.settings.controller_parameters['deadzone_velocity_threshold'] for data in simulation_data]
     energy_budget_values = [data.settings.energy_budget for data in simulation_data]
 
     plt.figure(0)
