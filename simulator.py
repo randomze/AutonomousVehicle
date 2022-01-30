@@ -7,7 +7,6 @@ from typing import Union
 import imageio
 from model.carModel import CarModel
 from model.controller import Controller
-from model.sensors import Sensors
 from model.trajectoryGenerator import TrajectoryGenerator
 import matplotlib.pyplot as plt
 import numpy as np
@@ -46,7 +45,7 @@ class SimInstant:
 
 class Simulator:
     def __init__(
-            self, step_size_plot, step_size_sim, car_constants, map_constants, sensorParameters, controller_parameters,
+            self, step_size_plot, step_size_sim, car_constants, map_constants, controller_parameters,
             path: tuple, time: float, energy_budget,
             vis_window: tuple = ((-20, 20),
                                  (-20, 20)),
@@ -55,7 +54,6 @@ class Simulator:
         self.step_size_sim = step_size_sim
 
         self.car_model = CarModel(car_constants)
-        self.sensors = Sensors(sensorParameters)
         smoothen_window = 5
         self.trajectory_generator = TrajectoryGenerator(
             map_constants, path, smoothen_window, energy_budget, self.car_model.M, self.car_model.idle_power)
@@ -103,7 +101,6 @@ class Simulator:
         ))
 
         self.tracking_error_vel.append(self.trajectory_generator.states[controller_reference, 0] - car_state_v_cm[0])
-        print(self.tracking_error_vel[-1])
         car_position = car_state[2:4]
         reference_trajectory = self.trajectory_generator.states[:, 2:4]
         if controller_reference == 0:
@@ -130,7 +127,7 @@ class Simulator:
                 tracking_error = np.sqrt(max(np.linalg.norm(relative_car_position)**2 - distance_along_path**2, 0))
         self.tracking_error_pos.append(tracking_error)
 
-    def save_data(self, filename: str = 'sim_data.pkl', settings: Union[SimSettings, None] = None):
+    def save_data(self, filename: str = 'sim_data.pkl', settings: Union[SimSettings, None] = None, video_file: str = 'simulation.mp4'):
         sim_data = SimData(
             settings=settings,
             trajectory=np.array(self.trajectory_generator.states),
@@ -142,7 +139,7 @@ class Simulator:
         with open(filename, 'wb') as f:
             pickle.dump(sim_data, f)
         if self.visualization:
-            self.to_video()
+            self.to_video(video_name=video_file)
 
     def to_file(self, iter: int):
         try:
@@ -205,11 +202,8 @@ class Simulator:
 
                 car_output = self.car_model.output(sim_instant, car_state)
 
-                sensors_input = car_output
-                sensors_output = self.sensors.output(sim_instant, sensors_input)
-
                 trajectory_output = self.trajectory_generator.output(sim_instant)
-                controller_input = [sensors_output, trajectory_output, self.energy_spent]
+                controller_input = [car_output, trajectory_output, self.energy_spent]
                 controller_output, goal_achieved = self.controller.output(sim_instant, controller_input)
 
                 controller_reference = self.controller.current_waypoint
@@ -259,32 +253,28 @@ class SimWrapperTests(Simulator):
     def __init__(self, settings: SimSettings):
         self.settings = settings
 
-        super().__init__(settings.step_size_plot, settings.step_size_sim, settings.car_constants, settings.road_constants, settings.sensor_parameters, settings.controller_parameters, settings.traj_endpoints, settings.sim_time, settings.energy_budget, settings.vis_window, settings.visualization, settings.real_time)
+        super().__init__(settings.step_size_plot, settings.step_size_sim, settings.car_constants, settings.road_constants, settings.controller_parameters, settings.traj_endpoints, settings.sim_time, settings.energy_budget, settings.vis_window, settings.visualization, settings.real_time)
 
 
 if __name__ == "__main__":
     np.random.seed(1)
 
     settings = SimSettings(
-        step_size_plot=0.2,
-        step_size_sim=0.01,
-        sim_time=100,
+        # trajectory definition
+        traj_endpoints=TrajectoryPreset.VerySharpTurn.value,
 
-        traj_endpoints=TrajectoryPreset.SharpTurns.value,
-
-        energy_budget=(None, 20),
-        car_constants=def_car_constants(
-            idle_power=500,
-        ),
-        controller_parameters=def_controller_parameters(
-            deadzone_velocity_threshold=0.1,
-            deadzone_continuity=True,
-            steering=0.1
-        ),
-
+        # visualization parameters
+        step_size_plot=0.1,
         visualization=True,
         real_time=True,
         vis_window=((-30, 30), (-30, 30)),
+
+        # simulation parameters
+        controller_parameters=def_controller_parameters(
+            steering=10,
+            force=2000,
+            goal_crossing_distance=-1.0
+        ),
     )
 
     sim = SimWrapperTests(settings)

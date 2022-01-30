@@ -38,10 +38,6 @@ def def_road_constants(lat=38.7367256, lon=-9.1388871, zoom=16, upsampling=3, re
         'regularization': regularization,
     }
 
-def def_sensor_parameters():
-    return {
-    }
-
 def def_controller_parameters(force=1000, force_park=1000, steering=100, deadzone_velocity_threshold=0.1, deadzone_continuity: bool = True, goal_crossing_distance=-2.54):
     return {
         'force': force,
@@ -72,7 +68,6 @@ class SimSettings:
 
     car_constants: Dict = field(default_factory=def_car_constants) 
     road_constants: Dict = field(default_factory=def_road_constants)
-    sensor_parameters: Dict = field(default_factory=def_sensor_parameters)
     controller_parameters: Dict = field(default_factory=def_controller_parameters)
     traj_endpoints: tuple = TrajectoryPreset.Balanced1.value
     energy_budget: tuple = (1e6, None)
