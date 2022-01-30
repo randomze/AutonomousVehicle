@@ -8,8 +8,7 @@ import multiprocessing
 
 import numpy as np
 from performance.cache_utils import cache_dir
-import tqdm
-from simulator import SimInstant, SimData, SimWrapperTests
+from simulator import SimData, Simulator
 from sim_settings import SimSettings, def_car_constants, def_controller_parameters
 
 sims_folder = 'sims'
@@ -43,15 +42,13 @@ def run_sims(settings_list: list[SimSettings], batch_size: int = -1):
     print(f"From {len(settings_list)} simulations, {len(settings_list) - len(args)} were already done")
 
     with multiprocessing.Pool(batch_size) as pool:
-        list(tqdm.tqdm(pool.istarmap(run_sim, args), total=len(args)))
-
-    print('\nDone')
+        pool.starmap(run_sim, args, chunksize=32)
 
 def run_sim(settings: SimSettings, data_file: os.PathLike, stdout_file: os.PathLike = None):
     if not stdout_file is None:
         sys.stdout = open(stdout_file, 'w')
 
-    sim = SimWrapperTests(settings)
+    sim = Simulator(settings)
     sim.simulate()
     sim.save_data(data_file, settings=settings)
 

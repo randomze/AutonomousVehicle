@@ -42,32 +42,34 @@ class SimInstant:
     work_force: float
     energy_spent: float
 
-
 class Simulator:
-    def __init__(
-            self, step_size_plot, step_size_sim, car_constants, map_constants, controller_parameters,
-            path: tuple, time: float, energy_budget,
-            vis_window: tuple = ((-20, 20),
-                                 (-20, 20)),
-            visualization: bool = True, real_time=False):
-        self.step_size_plot = step_size_plot
-        self.step_size_sim = step_size_sim
+    def __init__(self, settings: SimSettings):
+            
+        #, step_size_plot, step_size_sim, car_constants, map_constants, controller_parameters,
+        #path: tuple, time: float, energy_budget,
+        #vis_window: tuple = ((-20, 20),
+        #                     (-20, 20)),
+        #visualization: bool = True, real_time=False):
+        
 
-        self.car_model = CarModel(car_constants)
+        self.step_size_plot = settings.step_size_plot
+        self.step_size_sim = settings.step_size_sim
+
+        self.car_model = CarModel(settings.car_constants)
         smoothen_window = 5
         self.trajectory_generator = TrajectoryGenerator(
-            map_constants, path, smoothen_window, energy_budget, self.car_model.M, self.car_model.idle_power)
-        self.controller = Controller(controller_parameters, self.car_model.L, self.trajectory_generator.energy_budget)
+            settings.road_constants, settings.traj_endpoints, smoothen_window, settings.energy_budget, self.car_model.M, self.car_model.idle_power)
+        self.controller = Controller(settings.controller_parameters, self.car_model.L, self.trajectory_generator.energy_budget)
         self.energy_budget = self.trajectory_generator.energy_budget
-        self.car_visualizer = CarVisualizer(car_constants)
-        self.map_visualizer = MapVisualizer(map_constants)
+        self.car_visualizer = CarVisualizer(settings.car_constants)
+        self.map_visualizer = MapVisualizer(settings.road_constants)
         self.energy_spent = 0
         self.collisions = 0
-        self.visualization = visualization
+        self.visualization = settings.visualization
 
-        self.sim_time = time
-        self.vis_window = vis_window
-        self.realtime = real_time
+        self.sim_time = settings.sim_time
+        self.vis_window = settings.vis_window
+        self.realtime = settings.real_time
 
         self.tracking_error_vel = []
         self.tracking_error_pos = []
@@ -172,14 +174,15 @@ class Simulator:
         if self.visualization:
             fig = plt.figure()
             ax: plt.Axes = fig.add_subplot(111)
+            ax.set_position([0.02, 0.12, 0.8, 0.8])
             fig.canvas.draw()
             plt.show(block=False)
             ax.set_xlabel('X [m]')
             ax.set_ylabel('Y [m]')
             self.map_visualizer.plot(ax)
             info_string = ""
-            overlay = ax.text(0.05, 0.95, info_string, transform=ax.transAxes,
-                              fontsize=10, verticalalignment='top', color='y')
+            overlay = ax.text(0.74, 0.9, info_string, transform=fig.transFigure,
+                              fontsize=10, verticalalignment='top', color='k')
             ti = time.time()
 
         goal_achieved = False
@@ -225,10 +228,11 @@ class Simulator:
                 continue
 
             info_string = f'Time: {sim_instant:.2f} s\n'
-            info_string += f'Energy spent: {self.energy_spent:.2f} J\n'
-            info_string += f'Energy budget: {self.energy_budget:.2f} J\n'
+            info_string += f'Energy spent/budget:\n'
+            info_string += f'{self.energy_spent/1000:0.1f}/{self.energy_budget/1000:.1f} kJ\n'
+            info_string += f'Velocity/Max Velocity:\n'
+            info_string += f'{car_output[0]*3600/1000:.1f} / {trajectory_output[controller_reference][0]*3600/1000:.1f} km/h\n'
             info_string += f'Collisions: {self.collisions}\n'
-            info_string += f'Velocity: {car_output[0]*3600/1000:.2f} / {trajectory_output[controller_reference][0]*3600/1000:.2f} km/h\n'
             # Do some plots
             t1 = time.time()
             self.car_visualizer.plot(ax)
@@ -249,11 +253,6 @@ class Simulator:
             t4 = time.time()
             print(f' {t1-t0:.2f} - {t2-t1:.2f} - {t3-t2:.2f} - {t4-t3:.2f} - total: {t4-t0:.2f}  {instant:.2f}/{self.sim_time:.2f} s ({(instant+self.step_size_plot)/self.sim_time*100:.2f}%) real time: {time.time() - ti:.2f}', end='\n')
 
-class SimWrapperTests(Simulator):
-    def __init__(self, settings: SimSettings):
-        self.settings = settings
-
-        super().__init__(settings.step_size_plot, settings.step_size_sim, settings.car_constants, settings.road_constants, settings.controller_parameters, settings.traj_endpoints, settings.sim_time, settings.energy_budget, settings.vis_window, settings.visualization, settings.real_time)
 
 
 if __name__ == "__main__":
@@ -261,7 +260,7 @@ if __name__ == "__main__":
 
     settings = SimSettings(
         # trajectory definition
-        traj_endpoints=TrajectoryPreset.VerySharpTurn.value,
+        traj_endpoints=TrajectoryPreset.SharpTurns.value,
 
         # visualization parameters
         step_size_plot=0.1,
@@ -271,13 +270,13 @@ if __name__ == "__main__":
 
         # simulation parameters
         controller_parameters=def_controller_parameters(
-            steering=10,
-            force=2000,
-            goal_crossing_distance=-1.0
+            steering=8,
+            force=20000,
+            goal_crossing_distance=0.0
         ),
     )
 
-    sim = SimWrapperTests(settings)
+    sim = Simulator(settings)
 
     try:
         sim.simulate()
