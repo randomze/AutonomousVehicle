@@ -1,3 +1,4 @@
+from re import S
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -10,22 +11,22 @@ if __name__=='__main__':
         SimSettings(
             sim_time=200,
             controller_parameters=def_controller_parameters(
-                deadzone_continuity=True,
                 deadzone_velocity_threshold=val
             )
         )
-        for val in np.arange(0.0, 5, 0.1)
+        for val in np.arange(0.0, 0.5, 0.01)
     ]
 
     run_sims(settings_deadzones)
 
     simulation_data = [fetch_sim_data(s) for s in settings_deadzones]
 
+    for simulation in simulation_data:
+        print(simulation.simout[-1].time)
+
     time_data = [[instant.time for instant in data.simout] for data in simulation_data]
     energy_data = [[instant.energy_spent for instant in data.simout] for data in simulation_data]
 
-    car_state_data = [[instant.car_state_v_cm for instant in data.simout] for data in simulation_data]
-    reference_data = [[instant.controller_reference for instant in data.simout] for data in simulation_data]
 
     deadzone_velocity_threshold_values = [data.settings.controller_parameters['deadzone_velocity_threshold'] for data in simulation_data]
     energy_budget_values = [data.settings.energy_budget for data in simulation_data]
@@ -33,22 +34,19 @@ if __name__=='__main__':
     plt.figure(0)
     plt.title("Energy spent vs. time for different velocity deadzone thresholds")
     for simulation in range(len(simulation_data)):
-        car_state = np.vstack(car_state_data[simulation])
-        reference = np.vstack(reference_data[simulation])
 
-        car_velocities = car_state[:, 0]
-        reference_velocities = reference[:, 0]
+        if simulation_data[simulation].collisions != 0:
+            continue
 
-        velocity_error = reference_velocities - car_velocities
+        velocity_error = simulation_data[simulation].tracking_error_vel
         mean_velocity_error = np.mean(velocity_error)
 
 
         time = np.array(time_data[simulation])
         energy = np.array(energy_data[simulation])
 
-
         deadzone_velocity_threshold = deadzone_velocity_threshold_values[simulation]
-        energy_budget = energy_budget_values[simulation]
+        energy_budget = float(simulation_data[simulation].settings.energy_budget[0])
 
         plt.plot(time, energy, label=f"T={deadzone_velocity_threshold:.2f}, meanVerror={mean_velocity_error:.2f} (E={energy_budget:.0f})")
 

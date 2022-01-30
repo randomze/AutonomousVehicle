@@ -1,7 +1,6 @@
 from __future__ import annotations
 import os
 import pickle
-import re
 import time
 from dataclasses import dataclass
 from typing import Union
@@ -84,6 +83,8 @@ class Simulator:
 
         self.instants: list[SimInstant] = []
 
+        self.end_sim_triggered = False
+
     def update_data(self, time, car_state, car_state_v_cm, sensors_output,
                     controller_reference, controller_actuation, work_force, energy_spent):
         self.instants.append(SimInstant(
@@ -160,6 +161,7 @@ class Simulator:
             os.remove(image)
         writer.close()
 
+
     def simulate(self):
         car_state = self.initial_conditions['car_ic']
         controller_output = np.array([0, 0])
@@ -191,7 +193,9 @@ class Simulator:
                 # when the simulation is finished, stop the dynamic simulation
                 # but keep the visualization
                 if goal_achieved:
-                    self.final_time_max = sim_instant + self.seconds_to_film_after_end
+                    if not self.end_sim_triggered:
+                        self.final_time_max = sim_instant + self.seconds_to_film_after_end
+                        self.end_sim_triggered = True
                     car_state[0] = 0
                     self.car_model.idle_power = 0
                 else: 
@@ -280,9 +284,9 @@ if __name__ == "__main__":
         controller_parameters=def_controller_parameters(
             steering=115.555,
             force=733.33,
-            goal_crossing_distance=-2.0
+            goal_crossing_distance=-2.0,
+            deadzone_velocity_threshold=0.5,
         ),
-        energy_budget=(1000, None)
     )
 
     sim = Simulator(settings)

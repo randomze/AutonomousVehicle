@@ -160,7 +160,7 @@ if __name__ == '__main__':
 
     print(f'Invalid bundles (in which car collided): {len(cost_components_raw) - len(cost_components)}/{len(cost_components_raw)}')
 
-    costs = np.array([cost_fcn(component) for component in cost_components])
+    costs = np.array([cost_fcn(component, cost_fcn_gains) for component in cost_components])
 
     idxs = np.argsort(costs).tolist()
 
