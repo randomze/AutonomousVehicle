@@ -26,6 +26,8 @@ class SimData:
     tracking_error_pos: np.ndarray
     tracking_error_vel: np.ndarray
 
+    collisions: int
+
     simout: list[SimInstant]
 
 
@@ -40,7 +42,6 @@ class SimInstant:
 
     work_force: float
     energy_spent: float
-    collisions: int
 
 
 class Simulator:
@@ -89,7 +90,7 @@ class Simulator:
         self.instants: list[SimInstant] = []
 
     def update_data(self, time, car_state, car_state_v_cm, sensors_output,
-                    controller_reference, controller_actuation, work_force, energy_spent, collisions):
+                    controller_reference, controller_actuation, work_force, energy_spent):
         self.instants.append(SimInstant(
             time=time,
             car_state=car_state,
@@ -98,11 +99,11 @@ class Simulator:
             controller_reference=controller_reference,
             controller_actuation=controller_actuation,
             work_force=work_force,
-            energy_spent=energy_spent,
-            collisions=collisions
+            energy_spent=energy_spent
         ))
 
-        self.tracking_error_vel.append(self.trajectory_generator.states[controller_reference] - car_state[0])
+        self.tracking_error_vel.append(self.trajectory_generator.states[controller_reference, 0] - car_state_v_cm[0])
+        print(self.tracking_error_vel[-1])
         car_position = car_state[2:4]
         reference_trajectory = self.trajectory_generator.states[:, 2:4]
         if controller_reference == 0:
@@ -129,14 +130,14 @@ class Simulator:
                 tracking_error = np.sqrt(max(np.linalg.norm(relative_car_position)**2 - distance_along_path**2, 0))
         self.tracking_error_pos.append(tracking_error)
 
-
     def save_data(self, filename: str = 'sim_data.pkl', settings: Union[SimSettings, None] = None):
         sim_data = SimData(
             settings=settings,
             trajectory=np.array(self.trajectory_generator.states),
             tracking_error_pos=np.array(self.tracking_error_pos),
             tracking_error_vel=np.array(self.tracking_error_vel),
-            simout=self.instants
+            simout=self.instants,
+            collisions=self.collisions
         )
         with open(filename, 'wb') as f:
             pickle.dump(sim_data, f)
@@ -220,7 +221,7 @@ class Simulator:
 
 
                 self.update_data(sim_instant, car_state, car_output, sensors_output,
-                                 controller_reference, controller_output, work_force, self.energy_spent, self.collisions)
+                                 controller_reference, controller_output, work_force, self.energy_spent)
 
 
             self.collisions = self.map_visualizer.collision_counter(
@@ -278,7 +279,7 @@ if __name__ == "__main__":
         controller_parameters=def_controller_parameters(
             deadzone_velocity_threshold=0.1,
             deadzone_continuity=True,
-            force=1000
+            steering=0.1
         ),
 
         visualization=True,
@@ -292,7 +293,5 @@ if __name__ == "__main__":
         sim.simulate()
     except KeyboardInterrupt:
         print('Simulation interrupted')
-    except:
-        print("Unexpected error ended simulation")
     finally:
         sim.save_data()

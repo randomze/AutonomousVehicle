@@ -80,6 +80,9 @@ class Controller:
                     velocity_error = current_velocity if current_velocity > 0 else 0
                     self.force_apply = - self.gain_force_park * velocity_error
 
+                if current_velocity < 0.001:
+                    goal_achieved = True
+
         return (np.array([self.force_apply, steering_apply]), goal_achieved)
 
     def plot(self, ax: plt.Axes, waypoint_window_lims: tuple = (10, 10),

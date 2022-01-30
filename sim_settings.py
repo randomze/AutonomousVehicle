@@ -75,7 +75,7 @@ class SimSettings:
     sensor_parameters: Dict = field(default_factory=def_sensor_parameters)
     controller_parameters: Dict = field(default_factory=def_controller_parameters)
     traj_endpoints: tuple = TrajectoryPreset.Balanced1.value
-    energy_budget: tuple = (10000, None)
+    energy_budget: tuple = (1e6, None)
 
     # visualization
     vis_window: tuple = ((-20, 20), (-20, 20))

@@ -5,10 +5,10 @@ import sys
 import os
 import pickle
 import multiprocessing 
-import time
 
 import numpy as np
 from performance.cache_utils import cache_dir
+import tqdm
 from simulator import SimInstant, SimData, SimWrapperTests
 from sim_settings import SimSettings, def_car_constants, def_controller_parameters
 
@@ -20,7 +20,6 @@ def run_sims(settings_list: list[SimSettings], batch_size: int = -1):
     if batch_size == -1:
         batch_size = multiprocessing.cpu_count()
 
-    processes = []
     args = []
     for settings in settings_list:
         key = str(hash(settings))
@@ -31,7 +30,6 @@ def run_sims(settings_list: list[SimSettings], batch_size: int = -1):
             os.mkdir(sim_folder)
 
         if os.path.exists(sim_data_file):
-            settings_list.remove(settings)
             continue
 
         sim_settings_file = os.path.join(sim_folder, 'sim_settings.json')
@@ -43,25 +41,10 @@ def run_sims(settings_list: list[SimSettings], batch_size: int = -1):
         args.append((settings, sim_data_file, sim_stdout_file))
 
     print(f"From {len(settings_list)} simulations, {len(settings_list) - len(args)} were already done")
-    
 
     with multiprocessing.Pool(batch_size) as pool:
-        pool.starmap(run_sim, args)
+        list(tqdm.tqdm(pool.istarmap(run_sim, args), total=len(args)))
 
-    """
-    for i in range(0, len(processes), batch_size):
-        batch_ti = time.time()
-        end_idx = min(i + batch_size, len(processes))
-        cur_batch_size = end_idx - i
-        for t in processes[i:end_idx]:
-            t.start()
-        endchar = 's' if cur_batch_size > 1 else ''
-        print(f'Executing {cur_batch_size} simulation{endchar}', end='\r')
-        for t in processes[i:end_idx]:
-            t.join()
-        print(f'Batch {(i//batch_size)+1}/{len(processes)//batch_size + (1 if len(processes)%batch_size else 0)} took {time.time() - batch_ti:.2f}s to run')
-        batch_ti = time.time()
-    """
     print('\nDone')
 
 def run_sim(settings: SimSettings, data_file: os.PathLike, stdout_file: os.PathLike = None):
