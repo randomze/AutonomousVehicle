@@ -60,8 +60,10 @@ class TrajectoryGenerator:
 
             if ratio > 1.5 or ratio < 0.5:
                 print('Difference between requested energy budget and recommended for max velocity is over 50%.')
+                print('Recommended energy budget:', estimation)
+                print('Requested energy budget:', self.energy_budget)
                 
-        self.states = self.goal_states()
+        self.states = self.goal_states(budget_multiplier=0.9)
 
         self.last_time_query_idx = 0
 
@@ -103,15 +105,15 @@ class TrajectoryGenerator:
         return points_to_traverse
 
     @cached(class_func=True, folder="trajectory generator goal states")
-    def goal_states(self, vel_multiplier: float = 1.0):
-        top_maxlim_kmph = self.top_max_speed_kmh * vel_multiplier
-        bottom_maxlim_kmph = self.bottom_max_speed_kmh * vel_multiplier
+    def goal_states(self, budget_multiplier: float = 0.9):
+        top_maxlim_kmph = self.top_max_speed_kmh
+        bottom_maxlim_kmph = self.bottom_max_speed_kmh
         top_maxlim = top_maxlim_kmph/3.6
         bottom_maxlim = bottom_maxlim_kmph/3.6
         g = 9.8
         max_deceleration = 0.25*g
-        curve_r_to_speed_gain = 10 * vel_multiplier
-        E_budget = self.energy_budget
+        curve_r_to_speed_gain = 10
+        E_budget = self.energy_budget*budget_multiplier
 
         max_speeds = []
 

@@ -44,14 +44,6 @@ class SimInstant:
 
 class Simulator:
     def __init__(self, settings: SimSettings):
-            
-        #, step_size_plot, step_size_sim, car_constants, map_constants, controller_parameters,
-        #path: tuple, time: float, energy_budget,
-        #vis_window: tuple = ((-20, 20),
-        #                     (-20, 20)),
-        #visualization: bool = True, real_time=False):
-        
-
         self.step_size_plot = settings.step_size_plot
         self.step_size_sim = settings.step_size_sim
 
@@ -210,6 +202,10 @@ class Simulator:
                 controller_output, goal_achieved = self.controller.output(sim_instant, controller_input)
 
                 controller_reference = self.controller.current_waypoint
+
+                if self.energy_spent >= self.energy_budget:
+                    self.car_model.idle_power = 0
+
                 work_force = max(self.controller.force_apply, 0)
                 self.energy_spent += (work_force * car_state[0]
                                       + self.car_model.idle_power) * self.step_size_sim
@@ -270,10 +266,11 @@ if __name__ == "__main__":
 
         # simulation parameters
         controller_parameters=def_controller_parameters(
-            steering=8,
-            force=20000,
-            goal_crossing_distance=0.0
+            steering=115.555,
+            force=733.33,
+            goal_crossing_distance=-2.0
         ),
+        energy_budget=(None, 30/3.6)
     )
 
     sim = Simulator(settings)

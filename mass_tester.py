@@ -77,7 +77,7 @@ def get_cost(bundle: SimBundle):
 
     return errors_pos, errors_vel, errors_vel_abs, completion_time, max_actuation_force, max_actuation_steering
 
-def cost_fcn(args, gains: Collection = (0.1, 0.1, 0.1, 0.1, 0.1, 0.1)):
+def cost_fcn(args, gains: Collection = (1, 1, 1, 1, 1e-4, 1/20)):
     if not isinstance(args, Collection):
         if args == np.inf:
             return np.inf
@@ -101,13 +101,15 @@ def make_trajectories_bundle(settings: SimSettings):
 
     return bundle_settings
 
-def show_bundle_results(bundles: list[SimBundle], cost_components: Collection, cost: np.ndarray, idxs: np.ndarray):
+def show_bundle_results(bundles: list[SimBundle], cost_components: Collection, cost: np.ndarray, idxs: np.ndarray, gains: np.ndarray):
     components_str = []
     for components_bundle in cost_components:
         if components_bundle == np.inf:
             components_str.append('inf')
         else:
-            components_str.append([f'{component:.2f}' for component in components_bundle])
+            components_times_gain = [f'{components_bundle[i]*gains[i]:.2f}' for i in range(len(components_bundle))]
+            components_raw = [f'{components_bundle[i]:.2f}' for i in range(len(components_bundle))]
+            components_str.append([f'{components_times_gain[i]}/{components_raw[i]}' for i in range(len(components_bundle))])
 
     params_show_best = [(f'cost: {cost[idx]:.2f}',
                         f'components = {components_str[idx]}',
@@ -142,16 +144,23 @@ if __name__ == '__main__':
         for steering_vals in np.linspace(1, 10, num=10)
     ]
 
+    cost_fcn_gains = np.array((1, 1, 1, 0, 1e-6, 1/20))
 
     bundles = [make_trajectories_bundle(settings) for settings in parameter_vars]
 
     test_bundles(bundles) # perform all simulations, or make sure cached results exist
 
-    cost_components = get_cost_components(bundles)
+    cost_components_raw = get_cost_components(bundles)
+
+    cost_components = []
+    for component in cost_components_raw:
+        if component == np.inf:
+            continue
+        cost_components.append(component)
+
+    print(f'Invalid bundles (in which car collided): {len(cost_components_raw) - len(cost_components)}/{len(cost_components_raw)}')
 
     costs = np.array([cost_fcn(component) for component in cost_components])
-
-    print(costs.shape)
 
     idxs = np.argsort(costs).tolist()
 
@@ -160,10 +169,10 @@ if __name__ == '__main__':
     idx_worst = np.array(idxs[-10:])
 
     print('Best controller parameters:')
-    show_bundle_results(bundles, cost_components, costs, idxs_best)
+    show_bundle_results(bundles, cost_components, costs, idxs_best, cost_fcn_gains)
 
     print('Worst controller parameters:')
-    show_bundle_results(bundles, cost_components, costs, idx_worst)
+    show_bundle_results(bundles, cost_components, costs, idx_worst, cost_fcn_gains)
 
 
 

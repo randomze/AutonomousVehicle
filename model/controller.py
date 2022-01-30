@@ -52,7 +52,7 @@ class Controller:
         (self.current_waypoint, goal_achieved) = self.follower.next_waypoint(
             trajectory_output[:, 2:4], current_position_fixed)
         if goal_achieved:
-            self.force_apply = -self.gain_force*current_velocity
+            self.force_apply = -5000*current_velocity
             steering_apply = 0
             if abs(current_velocity) > 0.1:
                 goal_achieved = False
