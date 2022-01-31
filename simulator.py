@@ -141,7 +141,6 @@ class Simulator:
         self.tracking_error_pos.append(tracking_error)
 
     def save_data(self, filename: str = 'sim_data.pkl', settings: Union[SimSettings, None] = None, video_file: str = 'simulation.mp4'):
-        print('collisions', self.collisions)
         """ Save the simulation's data to a cache file.
         """
         sim_data = SimData(
@@ -293,6 +292,7 @@ class Simulator:
             if self.view_while_sim:
                 fig.canvas.flush_events()
                 plt.show(block=False)
+                plt.pause(0.001)
 
             t3 = time.time()
             self.to_file(int(instant/self.step_size_plot))
