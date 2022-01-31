@@ -21,6 +21,8 @@ class CarModel:
             The state is [v, theta, x, y, phi]. v and phi are the magnitude and direction of the 
             velocity of the car at the front wheel. theta, x and y are the orientation and position
             of the car.
+            The inputs are the magnitude of force applied on the car as a result of the torque 
+            applied on the front wheel and the steering angular velocity.
         """
         v, theta, x, y, phi = state
         f_v, omega_s = inputs
