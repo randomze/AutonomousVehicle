@@ -7,18 +7,24 @@ from typing import Collection
 
 import numpy as np
 
-from sim_settings import SimSettings, TrajectoryPreset, def_controller_parameters
-from simulator import SimData
-from testing.test_utils import run_sims, fetch_sim_data
 from performance.cache_utils import cached
+from simulator import SimData
+from sim_settings import SimSettings, TrajectoryPreset, def_controller_parameters
+from testing.test_utils import run_sims, fetch_sim_data
 
-
+# A wrapper class that groups sets of simulations in bundles. Useful for testing the same
+# controller on various different trajectories and keeping that data bundled, for comparison
+# with other controllers.
 @dataclass
 class SimBundle:
     sims = list[SimSettings]
 
 
 def test_bundles(bundles: list[SimBundle]):
+    """ Unpack the various bundles into a single list of tests to be ran.
+    (The usefulness of the bundles isn't lost by unpacking since the simulation data
+    which is later used is fetched using the bundle's hash, preserving the bundling.)
+    """
     sims = []
     for bundle in bundles:
         for sim in bundle:
@@ -27,15 +33,23 @@ def test_bundles(bundles: list[SimBundle]):
     
 
 def get_result(bundle: SimBundle):
+    """ Fetch a bundle's result from the saved data files.
+    """
     data = [fetch_sim_data(simulation) for simulation in bundle]
     if data is None:
         raise ValueError(f'Simulation data not found for {bundle}')
     return data
 
 def queue_friendly_cost(bundle):
+    """ Wrapper function for the cost calculations for multi-processing.
+    """
     return get_cost(bundle)
 
 def get_cost_components(bundles: list[SimBundle]):
+    """ Get the cost function's arguments for a list of bundles.
+
+    Do it concurrently to speed up the process.
+    """
     batch_size = multiprocessing.cpu_count() - 1
 
     with multiprocessing.Pool(batch_size) as pool:
@@ -45,6 +59,15 @@ def get_cost_components(bundles: list[SimBundle]):
 
 @cached(folder="bundle results")
 def get_cost(bundle: SimBundle):
+    """ Calculate each argument of a bundle's cost:
+
+    Average position error, across each simulation and across the bundle.
+    Average velocity error, across each simulation and across the bundle.
+    Average absolute velocity error, across each simulation and across the bundle.
+    Maximum power of the whole bundle.
+    Maximum actuation force of the whole bundle.
+    Maximum actuation steering of the whole bundle.
+    """
     data: list[SimData] = get_result(bundle)
 
     for sim in data:
@@ -84,6 +107,9 @@ def get_cost(bundle: SimBundle):
     return errors_pos, errors_vel, errors_vel_abs, max_power, max_actuation_force, max_actuation_steering
 
 def cost_fcn(args, gains: Collection):
+    """ Compute the cost of a bundle given the components and the set of gains which
+    characterize the cost function.
+    """
     if not isinstance(args, Collection):
         if args == np.inf:
             return np.inf
@@ -97,6 +123,8 @@ def cost_fcn(args, gains: Collection):
     return cost
 
 def make_trajectories_bundle(settings: SimSettings):
+    """ Generate a bundle of simulations with the same settings but with different trajectories.
+    """
     bundle_settings = []
     trajectories = [preset.value for preset in TrajectoryPreset]
 
@@ -108,6 +136,8 @@ def make_trajectories_bundle(settings: SimSettings):
     return bundle_settings
 
 def show_bundle_results(bundles: list[SimBundle], cost_components: Collection, cost: np.ndarray, idxs: np.ndarray, gains: np.ndarray):
+    """ Show the cost of each bundle, as well as it's components and the associated relevant controller parameters.
+    """
     components_str = []
     for components_bundle in cost_components:
         if not isinstance(components_bundle, np.ndarray) and components_bundle == np.inf:
@@ -128,7 +158,10 @@ def show_bundle_results(bundles: list[SimBundle], cost_components: Collection, c
     print('\n'.join([str(param) for param in params_show_best])) 
 
 def gains_to_normalize(cost_components: np.ndarray):
-    # define gains as 1/max for each cost component
+    """ Determines the normalization factor for each cost component, so that no single cost component,
+    across all bundles and simulations, can be greater than 1.
+    """
+
     gains = np.zeros(cost_components.shape[1])
     for i in range(cost_components.shape[1]):
         max_val = np.max(np.abs(cost_components[:,i]))
@@ -146,19 +179,24 @@ if __name__ == '__main__':
             force=733.33,
             goal_crossing_distance=-2.0,
         ))
-        #for goal_crossing_distance_vals in np.linspace(-3, 0, num=10)
-        #for force_vals in np.linspace(100, 2000, num=25)
+        for goal_crossing_distance_vals in np.linspace(-3, 0, num=10)
+        for force_vals in np.linspace(100, 2000, num=25)
         for steering_vals in np.linspace(1, 200, num=15)
     ]
 
+    # Costs chosen for the cost function to choose the best controller and definition of the maximum
+    # acceptable front wheel torque
     cost_fcn_gains = np.array((1, 1/2, 1/2, 1, 1, 1))
     car_max_torque = 5000
     wheel_radius = 0.256
 
+    # Generate simulation settings
     bundles = [make_trajectories_bundle(settings) for settings in parameter_vars]
 
-    test_bundles(bundles) # perform all simulations, or make sure cached results exist
+    # Perform all simulations, or make sure cached results exist
+    test_bundles(bundles)
 
+    # Get cost information for the simulations and print results
     cost_components_raw = get_cost_components(bundles)
 
     print("cost components raw: ", len(cost_components_raw))

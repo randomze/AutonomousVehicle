@@ -209,7 +209,7 @@ class TrajectoryGenerator:
 
     @staticmethod
     def _calc_path_lengths(positions: np.ndarray):
-        """ calculates the lengths between waypoints
+        """ Calculates the lengths between waypoints.
         """
         distance = np.zeros(positions.shape[0]-1)
 
@@ -220,10 +220,10 @@ class TrajectoryGenerator:
 
     @staticmethod
     def _calc_waypoint_thetas(positions: np.ndarray):
-        """ calculates the theta at waypoint i pointing from waypoint i-1 to waypoint i, except at the first waypoint,
+        """ Calculates the theta at waypoint i pointing from waypoint i-1 to waypoint i, except at the first waypoint,
             which points to the second.
 
-            Returns teh theta at each waypoint
+            Returns the theta at each waypoint.
         """
 
         thetas = np.empty(positions.shape[0])
