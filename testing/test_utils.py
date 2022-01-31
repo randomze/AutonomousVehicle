@@ -34,24 +34,15 @@ def run_sims(settings_list: list[SimSettings], batch_size: int = -1):
         if os.path.exists(sim_data_file):
             continue
 
-        sim_settings_file = os.path.join(sim_folder, 'sim_settings.json')
-        with open(sim_settings_file, 'w') as f:
-            json.dump(dataclasses.asdict(settings) , f)
-
         sim_stdout_file = os.path.join(sim_folder, 'out.txt')
 
         args.append((settings, sim_data_file, sim_stdout_file))
 
     print(f"From {len(settings_list)} simulations, {len(settings_list) - len(args)} were already done")
 
-    chunksize = len(args) // batch_size
-
-    if chunksize > 16:
-        chunksize = 16
-
     with multiprocessing.Pool(batch_size) as pool:
         #pool.map(run_sim_star_wrapper, args, chunksize=chunksize)
-        list(tqdm.tqdm(pool.imap(run_sim_star_wrapper, args, chunksize=chunksize), total=len(args)))
+        list(tqdm.tqdm(pool.imap(run_sim_star_wrapper, args), total=len(args)))
 
 def run_sim_star_wrapper(args):
     return run_sim(*args)
