@@ -1,22 +1,26 @@
+# Built-in imports
 from __future__ import annotations
+from dataclasses import dataclass
 import os
 import pickle
 import time
-from dataclasses import dataclass
 from typing import Union
+
+# Library imports
 import imageio
-from car.carModel import CarModel
-from car.controller import Controller
-from path.trajectoryGenerator import TrajectoryGenerator
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
 
+# Internal imports
+from car.carModel import CarModel
+from car.controller import Controller
 from path.carVisualizer import CarVisualizer
 from path.mapVisualizer import MapVisualizer
+from path.trajectoryGenerator import TrajectoryGenerator
 from sim_settings import SimSettings, def_car_constants, def_controller_parameters, TrajectoryPreset
 
-
+# Dataclass for storing simulation data for posterior treatment
 @dataclass
 class SimData:
     settings: SimSettings
@@ -29,7 +33,7 @@ class SimData:
 
     simout: list[SimInstant]
 
-
+# Dataclass for storing each simulation instant's important variables, for posterior treatment
 @dataclass(frozen=True, order=True)
 class SimInstant:
     time: float
@@ -43,7 +47,17 @@ class SimInstant:
     energy_spent: float
 
 class Simulator:
+    ''' Simulator main class. 
+
+    Handles the numerical simulation of the car model and envionment,
+    aswell as instantiation and managment of all the important objects in the developed system's
+    architecure.
+    '''
     def __init__(self, settings: SimSettings):
+        ''' Unpack the simulation settings data into the simulator's internal variables.
+
+        Initialize all the objects with the supplied parameters.
+        '''
         self.step_size_plot = settings.step_size_plot
         self.step_size_sim = settings.step_size_sim
         self.final_time_max = settings.sim_time
@@ -86,6 +100,8 @@ class Simulator:
 
     def update_data(self, time, car_state, car_state_v_cm, sensors_output,
                     controller_reference, controller_actuation, work_force, energy_spent):
+        ''' Save current instant data into the simulation data structure.
+        '''
         self.instants.append(SimInstant(
             time=time,
             car_state=car_state,
@@ -126,6 +142,8 @@ class Simulator:
 
     def save_data(self, filename: str = 'sim_data.pkl', settings: Union[SimSettings, None] = None, video_file: str = 'simulation.mp4'):
         print('collisions', self.collisions)
+        ''' Save the simulation's data to a cache file.
+        '''
         sim_data = SimData(
             settings=settings,
             trajectory=np.array(self.trajectory_generator.states),
@@ -140,6 +158,8 @@ class Simulator:
             self.to_video(video_name=video_file)
 
     def to_file(self, iter: int):
+        ''' Save the current frame into a file.
+        '''
         try:
             plt.savefig(os.path.join(self.image_dir, f'{iter:04d}.png'))
         except:
@@ -148,6 +168,8 @@ class Simulator:
             raise
 
     def to_video(self, video_name: str = 'simulation.mp4'):
+        ''' Compile every frame into a video and save it to a file.
+        '''
         print('Saving video...')
         fps = int(1/self.step_size_plot)
         images = []
@@ -163,11 +185,16 @@ class Simulator:
 
 
     def simulate(self):
+        ''' Run the entirety of the simulation.
+        '''
+
+        # Set the initial state of the dynamical system
         car_state = self.initial_conditions['car_ic']
         controller_output = np.array([0, 0])
         sensors_output = np.array([0, 0])
         trajectory_output = np.array([0, 0])
 
+        # If the simulation is running in visualization mode, setup the window.
         if self.visualization:
             fig = plt.figure()
             ax: plt.Axes = fig.add_subplot(111)
@@ -182,15 +209,17 @@ class Simulator:
                               fontsize=10, verticalalignment='top', color='k')
             ti = time.time()
 
+        # Simulate with a fixed time step and while the destination hasn't been achieved
         goal_achieved = False
         for instant in np.arange(self.sim_time, step=self.step_size_plot):
             t0 = time.time()
             for sim_instant in np.arange(instant, instant + self.step_size_plot, self.step_size_sim):
 
+                # Accounts for mistmatches between the simulation step size and the plot step size
                 if sim_instant > self.final_time_max:
                     return
                 
-                # when the simulation is finished, stop the dynamic simulation
+                # When the simulation is finished, stop the dynamic simulation
                 # but keep the visualization
                 if goal_achieved:
                     if not self.end_sim_triggered:
@@ -219,23 +248,28 @@ class Simulator:
 
                 controller_reference = self.controller.current_waypoint_idx
 
+                # If the energy exceeds the energy budget, turn the car off
                 if self.energy_spent >= self.energy_budget:
                     self.car_model.idle_power = 0
 
+                # Calculate energy spent
                 work_force = max(controller_output[0], 0)
                 self.energy_spent += (work_force * car_state[0]
                                       + self.car_model.idle_power) * self.step_size_sim
 
+                # Visualization
                 self.car_visualizer.set_state(car_state)
 
-
+                # Save data
                 self.update_data(sim_instant, car_state, car_output, sensors_output,
                                  controller_reference, controller_output, work_force, self.energy_spent)
 
 
+            # Determine collisions with environment
             self.collisions = self.map_visualizer.collision_counter(
                 self.car_visualizer, visualization=self.visualization)
 
+            # Due all sorts of visualizations things: plots, text info, etc.
             if not self.visualization:
                 continue
 
@@ -270,22 +304,21 @@ class Simulator:
 if __name__ == "__main__":
     np.random.seed(1)
 
-    # all the possible parameters are defined in sim_settings.py
+    # All the possible parameters are defined in sim_settings.py
     settings = SimSettings(
-        # visualization parameters
+        # Visualization parameters
         step_size_plot=0.1,
         visualization=True,
         view_while_sim=True,
 
+        # A relatively challenging trajectory
         traj_endpoints=TrajectoryPreset.VerySharpTurn.value,
-
-        # to set energy budget in J, set first element to the desired value
-        # to estimate enrgy budget, set second element to desired speed in m/s
-        #energy_budget=(None, 30/3.6),
     )
 
+    # Initiate the simulator object
     sim = Simulator(settings)
 
+    # Run the simulation and if it's stopped save the video nonetheless
     try:
         sim.simulate()
     except KeyboardInterrupt:

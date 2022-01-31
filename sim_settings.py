@@ -1,12 +1,13 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Dict
-from physics.physics import center_of_mass_position, moment_of_inertia
 from enum import Enum
 import hashlib
+from typing import Dict
+
+from physics.physics import center_of_mass_position, moment_of_inertia
 
 
-# set default values for mass-related constants
+# Set default values for mass-related constants
 m = 3
 n = 2
 com_r, com_delta = center_of_mass_position(m, n)
@@ -73,7 +74,7 @@ class TrajectoryPreset(Enum):
 
 @dataclass
 class SimSettings:
-    # general simulation settings
+    # General simulation settings
     step_size_plot: float = 0.1
     step_size_sim: float = 0.01
     sim_time: float = 100
@@ -84,9 +85,15 @@ class SimSettings:
     road_constants: Dict = field(default_factory=def_road_constants)
     controller_parameters: Dict = field(default_factory=def_controller_parameters)
     traj_endpoints: tuple = TrajectoryPreset.Balanced1.value
+    
+    # The energy budget is defined as a Tuple. If the first element is not None, then it is the 
+    # energy budget. This is useful in a real scenario, where the car might be constrained by
+    # the battery's capacity or the fuel tank's size. In the simulation setting, the first element
+    # is set to None and the second element is set to the maximum velocity, from which the energy
+    # budget is estimated.
     energy_budget: tuple = (None, 10)
 
-    # visualization
+    # Visualization
     vis_window: tuple = ((-20, 20), (-20, 20))
     visualization: bool = False
     view_while_sim: bool = False

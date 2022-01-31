@@ -9,8 +9,11 @@ from path.carVisualizer import CarVisualizer
 from performance.cache_utils import cached
 from physics.collisions import is_colliding
 
+# The MapVisualizer object deals with the intricacies of displaying the map in the plots.
 class MapVisualizer:
     def __init__(self, road_constants: dict) -> None:
+        ''' Initialize the visualizer with all the input parameters.
+        '''
         self.lat = road_constants['lat']
         self.lon = road_constants['lon']
         self.zoom = road_constants['zoom']
@@ -41,6 +44,8 @@ class MapVisualizer:
     
     @cached(class_func=True, folder="road blocks")
     def load_road_blocks(self, road_edges: np.ndarray, meters_per_pixel: float, block_size_multiplier: float = 0.999) -> np.ndarray:
+        ''' Loads the road blocks from the edges. Used for colisions.
+        '''
         block_pixels_x, block_pixels_y = np.where(road_edges > 0)
         block_pixels = np.stack((block_pixels_x, block_pixels_y), axis=1)
         block_positions = np.array([pixel_to_xy(block, self.map.shape, self.meters_per_pixel) for block in block_pixels])
@@ -49,6 +54,8 @@ class MapVisualizer:
         return block_positions, block_edges
 
     def collision_counter(self, car_repr: CarVisualizer, square_window_side: int = 5, visualization: bool = False) -> int:
+        ''' Keeps track of the number of collisions along a simulation.
+        '''
         self.is_currently_colliding = self.car_collides_with_road(car_repr, square_window_side, visualization=visualization)
         if self.is_currently_colliding and not self.is_colliding:
             self.collision_count += 1
@@ -57,6 +64,8 @@ class MapVisualizer:
 
 
     def car_collides_with_road(self, car_repr: CarVisualizer, square_window_side: int = 5, visualization: bool = False) -> bool:
+        ''' Determines whether the car is colliding with the road edges, using the separating axis theorem.
+        '''
         _, _, x, y, _ = car_repr.state
         admissible_block_mask_x = np.logical_and(
             self.block_positions[:, 0] > x - square_window_side, 
@@ -82,5 +91,7 @@ class MapVisualizer:
         return False
 
     def plot(self, ax: plt.Axes):
+        ''' Plots the map.
+        '''
         ax.imshow(self.map, extent=self.extent, cmap='gray')
 
