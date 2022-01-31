@@ -1,10 +1,12 @@
 from __future__ import annotations
+
 import numpy as np
 import scipy.optimize
 import scipy.signal
+
 from environment import road, graph
-from visualization.utils import pixel_to_xy, xy_to_pixel
 from performance.cache_utils import cached
+from path.utils import pixel_to_xy, xy_to_pixel
 
 
 class TrajectoryGenerator:

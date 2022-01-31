@@ -1,6 +1,8 @@
 from __future__ import annotations
-import numpy as np
+
 import cv2
+import numpy as np
+
 from performance.cache_utils import cached
 
 class WeightedGraph:

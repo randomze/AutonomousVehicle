@@ -9,7 +9,7 @@ import numpy as np
 
 from sim_settings import SimSettings, TrajectoryPreset, def_controller_parameters
 from simulator import SimData
-from tester import run_sims, fetch_sim_data
+from testing.test_utils import run_sims, fetch_sim_data
 from performance.cache_utils import cached
 
 
@@ -143,19 +143,9 @@ if __name__ == '__main__':
             force=force_vals,
             goal_crossing_distance=goal_crossing_distance_vals,
         ))
-        for goal_crossing_distance_vals in np.linspace(-3, -1, num=5)
+        for goal_crossing_distance_vals in np.linspace(-3, 0, num=10)
         for force_vals in np.linspace(100, 2000, num=25)
         for steering_vals in np.linspace(10, 200, num=10)
-    ]
-    parameter_vars += [
-        SimSettings(controller_parameters=def_controller_parameters(
-            steering=steering_vals,
-            force=force_vals,
-            goal_crossing_distance=goal_crossing_distance_vals,
-        ))
-        for goal_crossing_distance_vals in np.linspace(-1, 0, num=5)
-        for force_vals in np.linspace(2000, 20000, num=25)
-        for steering_vals in np.linspace(1, 10, num=10)
     ]
 
     cost_fcn_gains = np.array((1, 1/2, 1/2, 1, 1, 1))

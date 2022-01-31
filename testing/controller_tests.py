@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-from tester import run_sims, fetch_sim_data
+from testing.test_utils import run_sims, fetch_sim_data
 from sim_settings import SimSettings, def_car_constants, def_controller_parameters
 
 def tracking_error(car_trajectory: np.ndarray, trajectory_output: np.ndarray, controller_reference: np.ndarray):

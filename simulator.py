@@ -5,15 +5,15 @@ import time
 from dataclasses import dataclass
 from typing import Union
 import imageio
-from model.carModel import CarModel
-from model.controller import Controller
-from model.trajectoryGenerator import TrajectoryGenerator
+from car.carModel import CarModel
+from car.controller import Controller
+from path.trajectoryGenerator import TrajectoryGenerator
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
 
-from visualization.carVisualizer import CarVisualizer
-from visualization.mapVisualizer import MapVisualizer
+from path.carVisualizer import CarVisualizer
+from path.mapVisualizer import MapVisualizer
 from sim_settings import SimSettings, def_car_constants, def_controller_parameters, TrajectoryPreset
 
 
@@ -269,6 +269,7 @@ class Simulator:
 if __name__ == "__main__":
     np.random.seed(1)
 
+    # all the possible parameters are defined in sim_settings.py
     settings = SimSettings(
         # visualization parameters
         step_size_plot=0.5,
@@ -283,6 +284,9 @@ if __name__ == "__main__":
             goal_crossing_distance=-2.0,
             deadzone_velocity_threshold=0.15,
         ),
+
+        # to set energy budget in J, set first element to the desired value
+        # to estimate enrgy budget, set second element to desired speed in m/s
         energy_budget=(None, 30/3.6),
     )
 

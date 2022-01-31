@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 from typing import Tuple
+
 import numpy as np
 
-def CoM_position(m: int, n: int) -> Tuple:
+def center_of_mass_position(m: int, n: int) -> Tuple:
     d = 0.64
     W = 2 * d
     Lm = 2.2
@@ -24,7 +26,7 @@ def CoM_position(m: int, n: int) -> Tuple:
 
     return (com_r, com_delta)
 
-def MoI(m: int, n: int) -> float:
+def moment_of_inertia(m: int, n: int) -> float:
     d = 0.64
     W = 2 * d
     Lm = 2.2

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import matplotlib.pyplot as plt
 import numpy as np
-from .utils import get_rectangle_corners
+
+from path.utils import get_rectangle_corners
 
 class CarVisualizer:
     def __init__(self, car_constants):

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import dataclasses
 import json
 import sys
@@ -7,6 +8,8 @@ import pickle
 import multiprocessing 
 
 import numpy as np
+import tqdm
+
 from performance.cache_utils import cache_dir
 from simulator import SimData, Simulator
 from sim_settings import SimSettings, def_car_constants, def_controller_parameters
@@ -41,8 +44,17 @@ def run_sims(settings_list: list[SimSettings], batch_size: int = -1):
 
     print(f"From {len(settings_list)} simulations, {len(settings_list) - len(args)} were already done")
 
+    chunksize = len(args) // batch_size
+
+    if chunksize > 16:
+        chunksize = 16
+
     with multiprocessing.Pool(batch_size) as pool:
-        pool.starmap(run_sim, args, chunksize=32)
+        #pool.map(run_sim_star_wrapper, args, chunksize=chunksize)
+        list(tqdm.tqdm(pool.imap(run_sim_star_wrapper, args, chunksize=chunksize), total=len(args)))
+
+def run_sim_star_wrapper(args):
+    return run_sim(*args)
 
 def run_sim(settings: SimSettings, data_file: os.PathLike, stdout_file: os.PathLike = None):
     if not stdout_file is None:

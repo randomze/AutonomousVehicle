@@ -2,7 +2,7 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 
-from model.physics import deadzone
+from physics.physics import deadzone
 
 
 class Controller:

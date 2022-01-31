@@ -1,8 +1,9 @@
-from re import S
+from __future__ import annotations
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-from tester import run_sims, fetch_sim_data
+from testing.test_utils import run_sims, fetch_sim_data
 from sim_settings import SimSettings, def_car_constants, def_controller_parameters
 
 
@@ -12,7 +13,7 @@ if __name__=='__main__':
             sim_time=200,
             controller_parameters=def_controller_parameters(
                 deadzone_velocity_threshold=val,
-                steering=115.5,
+                steering=115.52,
                 force=733.33,
                 goal_crossing_distance=-2.0,
             )

@@ -1,12 +1,13 @@
 from __future__ import annotations
+
 from enum import Enum
+import requests
+import os
 
 from performance.cache_utils import cached
 from . import graph
 import cv2
 import numpy as np
-import requests
-import os
 
 def retrieve_api_key(key_file_name: str = "api.key", search_pardir = True) -> str:
     """Retrieve Google Maps API key from file.

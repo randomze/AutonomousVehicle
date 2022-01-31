@@ -1,11 +1,13 @@
 from __future__ import annotations
+
 import matplotlib.pyplot as plt
 import numpy as np
-from performance.cache_utils import cached
+
 from environment import road, graph
-from visualization.utils import pixel_to_xy, get_rectangle_corners
-from visualization.carVisualizer import CarVisualizer
-from model.collisions import is_colliding
+from path.utils import pixel_to_xy, get_rectangle_corners
+from path.carVisualizer import CarVisualizer
+from performance.cache_utils import cached
+from physics.collisions import is_colliding
 
 class MapVisualizer:
     def __init__(self, road_constants: dict) -> None:

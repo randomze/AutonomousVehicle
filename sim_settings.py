@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict
-from model.physics import CoM_position, MoI
+from physics.physics import center_of_mass_position, moment_of_inertia
 from enum import Enum
 import hashlib
 
@@ -9,8 +9,8 @@ import hashlib
 # set default values for mass-related constants
 m = 3
 n = 2
-com_r, com_delta = CoM_position(m, n)
-Izz = MoI(m, n)
+com_r, com_delta = center_of_mass_position(m, n)
+Izz = moment_of_inertia(m, n)
 
 def def_car_constants(L=2.2, Lr=0.566, Lf=0.566, d=0.64, r=0.256, Length=3.332, Width=1.508, M=810.0, Izz=Izz, com_r=com_r, com_delta=com_delta, wheel_width=0.1, idle_power=500):
     return {
