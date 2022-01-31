@@ -8,8 +8,8 @@ from path.utils import get_rectangle_corners
 # The CarVisualizer object deals with displaying the car in the plots and video.
 class CarVisualizer:
     def __init__(self, car_constants):
-        ''' Initialize the car constants from the input parameters.
-        '''
+        """ Initialize the car constants from the input parameters.
+        """
         self.L = car_constants['L']
         self.Lr = car_constants['Lr']
         self.Lf = car_constants['Lf']
@@ -25,13 +25,13 @@ class CarVisualizer:
         self.lines = []
 
     def set_state(self, state):
-        ''' State setter.
-        '''
+        """ State setter.
+        """
         self.state = state
 
     def plot(self, ax: plt.Axes, zorder=1):
-        ''' Plot the car in it's current state.
-        '''
+        """ Plot the car in it's current state.
+        """
         # Get the car rectangles (body, rear wheels, front wheel)
         car_rectangles = self.get_car_representation(self.state)
         rectangles = []
@@ -56,8 +56,8 @@ class CarVisualizer:
 
 
     def get_car_representation(self, state):
-        ''' Constructs the car's rectangles from the car's current state.
-        '''
+        """ Constructs the car's rectangles from the car's current state.
+        """
         # Unpack the state variables
         v, theta, x, y, phi = state
         # Construct the car rectangle in it's own frame

@@ -1,10 +1,12 @@
 from __future__ import annotations
-
 from typing import Tuple
 
 import numpy as np
 
 def center_of_mass_position(m: int, n: int) -> Tuple:
+    """ Calculates the center of mass position, assuming that the car's mass
+    is uniformely distributed in an mxn grid.
+    """
     d = 0.64
     W = 2 * d
     Lm = 2.2
@@ -27,6 +29,9 @@ def center_of_mass_position(m: int, n: int) -> Tuple:
     return (com_r, com_delta)
 
 def moment_of_inertia(m: int, n: int) -> float:
+    """ Calculates the moment of inertia of the car, assuming that the car's mass
+    is uniformely distributed in an mxn grid.
+    """
     d = 0.64
     W = 2 * d
     Lm = 2.2
@@ -44,6 +49,8 @@ def moment_of_inertia(m: int, n: int) -> float:
     return Izz
 
 def deadzone(param: float, threshold: float, continuous: bool = False):
+    """ Implements a deadzone on a given input.
+    """
     if abs(param) < threshold:
         return 0
     else:
