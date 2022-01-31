@@ -47,17 +47,17 @@ class SimInstant:
     energy_spent: float
 
 class Simulator:
-    ''' Simulator main class. 
+    """ Simulator main class. 
 
     Handles the numerical simulation of the car model and envionment,
     aswell as instantiation and managment of all the important objects in the developed system's
     architecure.
-    '''
+    """
     def __init__(self, settings: SimSettings):
-        ''' Unpack the simulation settings data into the simulator's internal variables.
+        """ Unpack the simulation settings data into the simulator's internal variables.
 
         Initialize all the objects with the supplied parameters.
-        '''
+        """
         self.step_size_plot = settings.step_size_plot
         self.step_size_sim = settings.step_size_sim
         self.final_time_max = settings.sim_time
@@ -100,8 +100,8 @@ class Simulator:
 
     def update_data(self, time, car_state, car_state_v_cm, sensors_output,
                     controller_reference, controller_actuation, work_force, energy_spent):
-        ''' Save current instant data into the simulation data structure.
-        '''
+        """ Save current instant data into the simulation data structure.
+        """
         self.instants.append(SimInstant(
             time=time,
             car_state=car_state,
@@ -142,8 +142,8 @@ class Simulator:
 
     def save_data(self, filename: str = 'sim_data.pkl', settings: Union[SimSettings, None] = None, video_file: str = 'simulation.mp4'):
         print('collisions', self.collisions)
-        ''' Save the simulation's data to a cache file.
-        '''
+        """ Save the simulation's data to a cache file.
+        """
         sim_data = SimData(
             settings=settings,
             trajectory=np.array(self.trajectory_generator.states),
@@ -158,8 +158,8 @@ class Simulator:
             self.to_video(video_name=video_file)
 
     def to_file(self, iter: int):
-        ''' Save the current frame into a file.
-        '''
+        """ Save the current frame into a file.
+        """
         try:
             plt.savefig(os.path.join(self.image_dir, f'{iter:04d}.png'))
         except:
@@ -168,8 +168,8 @@ class Simulator:
             raise
 
     def to_video(self, video_name: str = 'simulation.mp4'):
-        ''' Compile every frame into a video and save it to a file.
-        '''
+        """ Compile every frame into a video and save it to a file.
+        """
         print('Saving video...')
         fps = int(1/self.step_size_plot)
         images = []
@@ -185,8 +185,8 @@ class Simulator:
 
 
     def simulate(self):
-        ''' Run the entirety of the simulation.
-        '''
+        """ Run the entirety of the simulation.
+        """
 
         # Set the initial state of the dynamical system
         car_state = self.initial_conditions['car_ic']
