@@ -32,8 +32,7 @@ The simulator also produces a `simulation.mp4` video file so the simulation can 
 
 ### Choosing different settings for the simulator
 
-To change the simulator settings, the user must edit the `simulator.py` file
-and do things.
+The simulator settings are all gathered in a SimSettings class, details of which can be altered in its instantiation in simulator.py .The parameter list is quite extensive and can be fully seen in sim_settings.py, accounting for each configurable element of the simulation.
 
 ## Running the Testing Suite
 
@@ -50,7 +49,7 @@ controller parameters (the goal crossing distance, the velocity control gain and
 each within a discrete number of options. Each of these controllers is tested on a set of different trajectories,
 with different path characteristics (sharper turns, larger straight stretches, etc.), then measuring a set
 of relevant metrics, like the average tracking error, average velocity error, etc. These are then used to determine
-a cost function for each controller. The controller that minimizes this cost function is considered the optimal
+a cost for each controller. The controller that minimizes this cost function is considered the optimal
 controller. The default controller for the simulator is the one determined through this mean.
 
 To run each of these tests, the user must run the following command:
