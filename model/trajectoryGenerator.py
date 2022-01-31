@@ -10,13 +10,22 @@ from performance.cache_utils import cached
 class TrajectoryGenerator:
 
     def __init__(
-            self, road_constants: dict, path: tuple, smoothen_window: int, energy_budget: tuple,
-            vehicle_mass: float, idle_power: float, energy_reserve_ratio: float = 0.3):
+            self, road_constants: dict, path: tuple, energy_budget: tuple,
+            vehicle_mass: float, idle_power: float):
         self.lat = road_constants['lat']
         self.lon = road_constants['lon']
         self.zoom = road_constants['zoom']
         self.upsampling = road_constants['upsampling']
         self.regularization = road_constants['regularization']
+
+        self.smoothen_window = road_constants['trajectory_smoothen_window']
+        self.max_speed_discretization = road_constants['speed_limit_discretization_N']
+        self.max_deceleration_g_ratio = road_constants['max_deceleration_g_ratio']
+        self.max_optimizer_iterations = road_constants['max_optimizer_iterations']
+
+        self.energy_multiplier = road_constants['energy_estimation_multiplier']
+        self.energy_reserve_ratio = road_constants['energy_reserve_ratio']
+
         self.vehicle_mass = vehicle_mass
         self.idle_power = idle_power
 
@@ -30,7 +39,7 @@ class TrajectoryGenerator:
 
         self.path = np.array(self.get_xy_path(*path))
         # Smoothen path in order to avoid sharp turns
-        self.path = self.__smoothen_path(self.path, smoothen_window)
+        self.path = self.__smoothen_path(self.path, self.smoothen_window)
 
         self.thetas = self._calc_waypoint_thetas(positions=self.path)
         # Orientation of each path
@@ -39,23 +48,25 @@ class TrajectoryGenerator:
         self.lengths = self._calc_path_lengths(positions=self.path)
 
         max_energy_budget, max_velocity = energy_budget
-        energy_with_reserve_ratio = 1/(1-energy_reserve_ratio)
+        energy_with_reserve_ratio = 1/(1-self.energy_reserve_ratio)
         if not max_energy_budget:
             self.energy_budget = energy_with_reserve_ratio*self._estimate_energy_budget(path_lengths=self.lengths,
                                                               idle_power=self.idle_power,
                                                               mass=self.vehicle_mass,
-                                                              max_velocity=max_velocity)
+                                                              max_velocity=max_velocity,
+                                                              multiplier=self.energy_multiplier)
             self.top_max_speed_kmh = max_velocity * 3.6
             self.bottom_max_speed_kmh = max_velocity * 0.3 * 3.6
         else:
             self.energy_budget = max_energy_budget
-            self.top_max_speed_kmh = 30
-            self.bottom_max_speed_kmh = 7
+            self.top_max_speed_kmh = road_constants['max_top_speed_kmh']
+            self.bottom_max_speed_kmh = road_constants['min_top_speed_kmh']
 
             estimation = energy_with_reserve_ratio*self._estimate_energy_budget(path_lengths=self.lengths,
                                                       idle_power=self.idle_power,
                                                       mass=self.vehicle_mass,
-                                                      max_velocity=self.top_max_speed_kmh / 3.6)
+                                                      max_velocity=self.top_max_speed_kmh / 3.6,
+                                                      multiplier=self.energy_multiplier)
 
             ratio = estimation / self.energy_budget
 
@@ -65,7 +76,7 @@ class TrajectoryGenerator:
                 print('Requested energy budget:', self.energy_budget)
                 
         # budget multiplier account for the fact that the energy budget is not exact
-        self.states = self.goal_states(budget_multiplier=1-energy_reserve_ratio)
+        self.states = self.goal_states(budget_multiplier=1-self.energy_reserve_ratio)
 
         self.last_time_query_idx = 0
 
@@ -111,7 +122,7 @@ class TrajectoryGenerator:
         top_maxlim = top_maxlim_kmph/3.6
         bottom_maxlim = bottom_maxlim_kmph/3.6
         g = 9.8
-        max_deceleration = 0.1*g
+        max_deceleration = self.max_deceleration_g_ratio*g
         curve_r_to_speed_gain = 10
         E_budget = self.energy_budget*budget_multiplier
 
@@ -148,7 +159,7 @@ class TrajectoryGenerator:
 
         max_speeds = np.array(max_speeds)
         # Round speed limits discrete values
-        k = 10  # number of values for speed limits (besides 0)
+        k = self.max_speed_discretization  # number of values for speed limits (besides 0)
         max_speeds = np.ceil(max_speeds*k/top_maxlim)*top_maxlim/k
         # Join paths with equal speed limits
         equal_tol = top_maxlim*1e-2
@@ -177,7 +188,8 @@ class TrajectoryGenerator:
 
         # get optimal velocities
         opt_path_vs = self._opt_speeds(v_i, path_lengths, min_speeds, max_speeds,
-                                       self.vehicle_mass, self.idle_power, E_budget)
+                                       self.vehicle_mass, self.idle_power, E_budget,
+                                       self.max_optimizer_iterations)
 
         # recover velocities of small paths
         small_path_vs = opt_path_vs[small_path_indeces]
@@ -221,7 +233,7 @@ class TrajectoryGenerator:
         return thetas
 
     @staticmethod
-    def _opt_speeds(v_i, path_lengths, min_speeds, max_speeds, mass, idle_power, E_budget):
+    def _opt_speeds(v_i, path_lengths, min_speeds, max_speeds, mass, idle_power, E_budget, max_iter):
         N = len(path_lengths)
         cost_scale = 256 # numerical stability
 
@@ -251,7 +263,7 @@ class TrajectoryGenerator:
         # initial guess at optimal velocities
         ini_v = np.ones_like(min_speeds)
         sol = scipy.optimize.minimize(cost, ini_v, method='SLSQP', jac=jac, bounds=bnds,
-                                      constraints=cons, options={"maxiter": 3000})
+                                      constraints=cons, options={"maxiter": max_iter})
         if not sol.success: # print some info if optimization failed
             print('Trajectory generator did not find optimal solution, continuing anyway')
             print('Energy budget might be impossible to meet or energy reserve ratio requirements too high')
@@ -263,11 +275,11 @@ class TrajectoryGenerator:
         return velocities
 
     @staticmethod
-    def _estimate_energy_budget(path_lengths, idle_power, mass, max_velocity):
+    def _estimate_energy_budget(path_lengths, idle_power, mass, max_velocity, multiplier):
         if max_velocity == 0:
             return idle_power * 1000
         estimated_time = path_lengths.sum() / max_velocity
         estimated_idle_power = idle_power * estimated_time
         estimated_kinetic_energy = 0.5 * mass * max_velocity**2
 
-        return (estimated_kinetic_energy + estimated_idle_power) * 1.5 # multiplier to account for losses which are unnaccounted for (braking)
+        return (estimated_kinetic_energy + estimated_idle_power) * multiplier # multiplier to account for losses which are unnaccounted for (braking)

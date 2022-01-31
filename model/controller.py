@@ -19,7 +19,7 @@ class Controller:
 
         self.gain_force = params['force']
         self.gain_steering = params['steering']
-        self.gain_force_park = params['force_park']
+        self.gain_park = params['park']
 
         self.deadzone_velocity = params['deadzone_velocity_threshold']
         self.continuous_deadzone = params['deadzone_continuity']
@@ -76,7 +76,7 @@ class Controller:
             force_apply = self.gain_force * deadzone(velocity_error, self.deadzone_velocity, self.continuous_deadzone) 
         else:  
             # in final waypoint target velocity is 0, stop on waypoint
-            velocity_reference = 0.1 * x_error_body_frame
+            velocity_reference = self.gain_park * x_error_body_frame
             force_apply = self.gain_force * (velocity_reference - car_state_v_cm[0])
 
             if velocity_cm < 0.1:
@@ -84,7 +84,7 @@ class Controller:
 
         if energy_spent > self.energy_budget: # the car ran out of energy
             velocity_error = velocity_cm if velocity_cm > 0 else 0
-            force_apply = - self.gain_force_park * velocity_error
+            force_apply = - self.gain_force * velocity_error
 
 
         return (np.array([force_apply, steering_apply]), self.goal_achieved)

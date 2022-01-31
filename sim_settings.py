@@ -29,25 +29,33 @@ def def_car_constants(L=2.2, Lr=0.566, Lf=0.566, d=0.64, r=0.256, Length=3.332, 
         'idle_power' : idle_power
     }
 
-def def_road_constants(lat=38.7367256, lon=-9.1388871, zoom=16, upsampling=3, regularization=5):
+def def_road_constants(lat=38.7367256, lon=-9.1388871, zoom=16, upsampling=3, 
+                    regularization=5, smoothen_window=5, speed_limit_discretization_N=10,
+                    max_top_speed_kmh=30, min_top_speed_kmh=10, max_deceleration_g_ratio=0.1,
+                    max_optimizer_iterations=3000, energy_estimation_multiplier=1.5,
+                    energy_reserve_ratio=0.3):
     return {
         'lat': lat,
         'lon': lon,
         'zoom': zoom,
         'upsampling': upsampling,
         'regularization': regularization,
+        'trajectory_smoothen_window': smoothen_window,
+        'speed_limit_discretization_N': speed_limit_discretization_N,
+        'max_top_speed_kmh': max_top_speed_kmh,
+        'min_top_speed_kmh': min_top_speed_kmh,
+        'max_deceleration_g_ratio': max_deceleration_g_ratio,
+        'max_optimizer_iterations': max_optimizer_iterations,
+        'energy_estimation_multiplier': energy_estimation_multiplier,
+        'energy_reserve_ratio': energy_reserve_ratio,
     }
 
-def def_sensor_parameters(): # TODO: remove
-    return {
-    }
-
-def def_controller_parameters(force=1000, force_park=1000, steering=100, deadzone_velocity_threshold=0.1, deadzone_continuity: bool = True, goal_crossing_distance=-2.54):
+def def_controller_parameters(force=1000, steering=100, deadzone_velocity_threshold=0.2, deadzone_continuity: bool = True, goal_crossing_distance=-2.54, park=0.1):
     return {
         'force': force,
-        'force_park': force_park,
         'steering': steering,
-        'deadzone_velocity_threshold': deadzone_velocity_threshold, # TODO: best value is 0.15
+        'park': park,
+        'deadzone_velocity_threshold': deadzone_velocity_threshold,
         'deadzone_continuity': deadzone_continuity,
         'goal_crossing_distance': goal_crossing_distance,
     }
@@ -70,9 +78,10 @@ class SimSettings:
     step_size_sim: float = 0.01
     sim_time: float = 100
 
+    sim_time_after_stop: float = 5
+
     car_constants: Dict = field(default_factory=def_car_constants) 
     road_constants: Dict = field(default_factory=def_road_constants)
-    sensor_parameters: Dict = field(default_factory=def_sensor_parameters)
     controller_parameters: Dict = field(default_factory=def_controller_parameters)
     traj_endpoints: tuple = TrajectoryPreset.Balanced1.value
     energy_budget: tuple = (1e6, None)
@@ -80,7 +89,7 @@ class SimSettings:
     # visualization
     vis_window: tuple = ((-20, 20), (-20, 20))
     visualization: bool = False
-    real_time: bool = False
+    view_while_sim: bool = False
 
     def __hash__(self) -> int:
         id = str(self)

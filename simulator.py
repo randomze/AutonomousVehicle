@@ -47,12 +47,11 @@ class Simulator:
         self.step_size_plot = settings.step_size_plot
         self.step_size_sim = settings.step_size_sim
         self.final_time_max = settings.sim_time
-        smoothen_window = 5
-        self.seconds_to_film_after_end = 5
+        self.seconds_to_film_after_end = settings.sim_time_after_stop
 
         self.car_model = CarModel(settings.car_constants)
         self.trajectory_generator = TrajectoryGenerator(
-            settings.road_constants, settings.traj_endpoints, smoothen_window, settings.energy_budget, self.car_model.M, self.car_model.idle_power)
+            settings.road_constants, settings.traj_endpoints, settings.energy_budget, self.car_model.M, self.car_model.idle_power)
         self.controller = Controller(settings.controller_parameters, self.car_model.L, self.trajectory_generator.energy_budget)
         self.energy_budget = self.trajectory_generator.energy_budget
         self.car_visualizer = CarVisualizer(settings.car_constants)
@@ -63,7 +62,7 @@ class Simulator:
 
         self.sim_time = settings.sim_time
         self.vis_window = settings.vis_window
-        self.realtime = settings.real_time
+        self.view_while_sim = settings.view_while_sim
 
         self.tracking_error_vel = []
         self.tracking_error_pos = []
@@ -256,7 +255,7 @@ class Simulator:
             ax.set_ylim([self.vis_window[1][0] + y, self.vis_window[1][1] + y])
 
             t2 = time.time()
-            if self.realtime:
+            if self.view_while_sim:
                 fig.canvas.flush_events()
                 plt.show(block=False)
 
@@ -271,13 +270,10 @@ if __name__ == "__main__":
     np.random.seed(1)
 
     settings = SimSettings(
-        # trajectory definition
-        sim_time=200,
-
         # visualization parameters
         step_size_plot=0.5,
         visualization=True,
-        real_time=True,
+        view_while_sim=True,
         vis_window=((-30, 30), (-30, 30)),
 
         # simulation parameters
