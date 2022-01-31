@@ -6,7 +6,7 @@ np.set_printoptions(precision=3)
 
 E_budget = 10e3
 mass = 1000
-N = 30
+N = 300
 idle_power = 1e1
 # lengths of paths
 s = np.random.uniform(1, 40, (N,))

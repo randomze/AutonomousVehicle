@@ -38,7 +38,7 @@ def def_road_constants(lat=38.7367256, lon=-9.1388871, zoom=16, upsampling=3, re
         'regularization': regularization,
     }
 
-def def_sensor_parameters():
+def def_sensor_parameters(): # TODO: remove
     return {
     }
 
@@ -47,7 +47,7 @@ def def_controller_parameters(force=1000, force_park=1000, steering=100, deadzon
         'force': force,
         'force_park': force_park,
         'steering': steering,
-        'deadzone_velocity_threshold': deadzone_velocity_threshold,
+        'deadzone_velocity_threshold': deadzone_velocity_threshold, # TODO: best value is 0.15
         'deadzone_continuity': deadzone_continuity,
         'goal_crossing_distance': goal_crossing_distance,
     }

@@ -44,8 +44,6 @@ def get_cost_components(bundles: list[SimBundle]):
 def get_cost(bundle: SimBundle):
     data: list[SimData] = get_result(bundle)
 
-    completion_time = np.mean([sim.simout[-1].time/sim.settings.sim_time for sim in data])
-
     for sim in data:
         if sim.collisions != 0:
             return np.inf
@@ -55,6 +53,7 @@ def get_cost(bundle: SimBundle):
     errors_vel_abs = []
     max_actuation_steering = []
     max_actuation_force = []
+    max_power = []
     for sim in data:
         errors_pos.append(np.mean(sim.tracking_error_pos))
         errors_vel.append(np.mean(sim.tracking_error_vel))
@@ -67,15 +66,19 @@ def get_cost(bundle: SimBundle):
             np.abs(instant.controller_actuation[1]) 
             for instant in sim.simout]
         ))
+        max_power.append(np.max([
+            np.abs(max(instant.car_state[0]*instant.controller_actuation[0], 0))
+            for instant in sim.simout]
+        ))
 
     errors_pos = np.mean(errors_pos)
     errors_vel = np.mean(errors_vel)
     errors_vel_abs = np.mean(errors_vel_abs)
     max_actuation_force = np.max(max_actuation_force)
     max_actuation_steering = np.max(max_actuation_steering)
+    max_power = np.max(max_power)
 
-
-    return errors_pos, errors_vel, errors_vel_abs, completion_time, max_actuation_force, max_actuation_steering
+    return errors_pos, errors_vel, errors_vel_abs, max_power, max_actuation_force, max_actuation_steering
 
 def cost_fcn(args, gains: Collection):
     if not isinstance(args, Collection):
@@ -104,7 +107,7 @@ def make_trajectories_bundle(settings: SimSettings):
 def show_bundle_results(bundles: list[SimBundle], cost_components: Collection, cost: np.ndarray, idxs: np.ndarray, gains: np.ndarray):
     components_str = []
     for components_bundle in cost_components:
-        if components_bundle == np.inf:
+        if not isinstance(components_bundle, np.ndarray) and components_bundle == np.inf:
             components_str.append('inf')
         else:
             components_times_gain = [f'{components_bundle[i]*gains[i]:.2f}' for i in range(len(components_bundle))]
@@ -120,7 +123,18 @@ def show_bundle_results(bundles: list[SimBundle], cost_components: Collection, c
     ]
 
     print('\n'.join([str(param) for param in params_show_best])) 
-    
+
+def gains_to_normalize(cost_components: np.ndarray):
+    # define gains as 1/max for each cost component
+    gains = np.zeros(cost_components.shape[1])
+    for i in range(cost_components.shape[1]):
+        max_val = np.max(np.abs(cost_components[:,i]))
+        if max_val == 0:
+            gains[i] = 1
+        else:
+            gains[i] = 1/max_val
+
+    return gains
 
 if __name__ == '__main__':
     parameter_vars = [
@@ -144,7 +158,9 @@ if __name__ == '__main__':
         for steering_vals in np.linspace(1, 10, num=10)
     ]
 
-    cost_fcn_gains = np.array((1, 1, 1, 0, 1e-6, 1/20))
+    cost_fcn_gains = np.array((1, 1/2, 1/2, 1, 1, 1))
+    car_max_torque = 5000
+    wheel_radius = 0.256
 
     bundles = [make_trajectories_bundle(settings) for settings in parameter_vars]
 
@@ -152,13 +168,29 @@ if __name__ == '__main__':
 
     cost_components_raw = get_cost_components(bundles)
 
+    print("cost components raw: ", len(cost_components_raw))
+
     cost_components = []
     for component in cost_components_raw:
         if component == np.inf:
             continue
         cost_components.append(component)
+    print("cost components: ", len(cost_components))
+    cost_components_filtered = []
+    for component in cost_components:
+        if component[4]*wheel_radius < car_max_torque: # ignore cases where there's unrealistic torque
+            cost_components_filtered.append(component)
+    print("cost components filtered: ", len(cost_components_filtered))
+    cost_components = np.abs(np.array(cost_components_filtered))
+    print("cost components: ", len(cost_components))
+    norm_gains = gains_to_normalize(cost_components)
 
-    print(f'Invalid bundles (in which car collided): {len(cost_components_raw) - len(cost_components)}/{len(cost_components_raw)}')
+    cost_components = cost_components * norm_gains
+
+    maxes = np.array([1/norm_gain for norm_gain in norm_gains])
+    print(f"{maxes =}")
+
+    print(f'Invalid bundles (in which car collided or max torque achieved): {len(cost_components_raw) - len(cost_components)}/{len(cost_components_raw)}')
 
     costs = np.array([cost_fcn(component, cost_fcn_gains) for component in cost_components])
 

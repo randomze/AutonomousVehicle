@@ -11,7 +11,10 @@ if __name__=='__main__':
         SimSettings(
             sim_time=200,
             controller_parameters=def_controller_parameters(
-                deadzone_velocity_threshold=val
+                deadzone_velocity_threshold=val,
+                steering=115.5,
+                force=733.33,
+                goal_crossing_distance=-2.0,
             )
         )
         for val in np.arange(0.0, 0.5, 0.01)
@@ -20,9 +23,6 @@ if __name__=='__main__':
     run_sims(settings_deadzones)
 
     simulation_data = [fetch_sim_data(s) for s in settings_deadzones]
-
-    for simulation in simulation_data:
-        print(simulation.simout[-1].time)
 
     time_data = [[instant.time for instant in data.simout] for data in simulation_data]
     energy_data = [[instant.energy_spent for instant in data.simout] for data in simulation_data]
@@ -36,6 +36,7 @@ if __name__=='__main__':
     for simulation in range(len(simulation_data)):
 
         if simulation_data[simulation].collisions != 0:
+            print(f"Simulation {simulation} had {simulation_data[simulation].collisions} collisions")
             continue
 
         velocity_error = simulation_data[simulation].tracking_error_vel

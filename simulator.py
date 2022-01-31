@@ -217,7 +217,7 @@ class Simulator:
                 controller_input = [car_output, trajectory_output, self.energy_spent]
                 controller_output, goal_achieved = self.controller.output(sim_instant, controller_input)
 
-                controller_reference = self.controller.current_waypoint
+                controller_reference = self.controller.current_waypoint_idx
 
                 if self.energy_spent >= self.energy_budget:
                     self.car_model.idle_power = 0
@@ -272,7 +272,7 @@ if __name__ == "__main__":
 
     settings = SimSettings(
         # trajectory definition
-        traj_endpoints=TrajectoryPreset.SharpTurns.value,
+        #traj_endpoints=TrajectoryPreset.SharpTurns.value,
 
         # visualization parameters
         step_size_plot=0.5,
@@ -285,7 +285,7 @@ if __name__ == "__main__":
             steering=115.555,
             force=733.33,
             goal_crossing_distance=-2.0,
-            deadzone_velocity_threshold=0.5,
+            deadzone_velocity_threshold=0.15,
         ),
     )
 

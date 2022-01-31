@@ -99,9 +99,7 @@ class TrajectoryGenerator:
         nodes_to_traverse = self.graph.get_path_from_spt(final_node, *spt)
         points_to_traverse = [pixel_to_xy((node[1], node[0]), self.map.shape, self.meters_per_pixel)
                               for node in nodes_to_traverse]
-        points_to_traverse = points_to_traverse # [1:-1]
-        # points_to_traverse.insert(0, init_point)
-        # points_to_traverse.append(final_point)
+        points_to_traverse = points_to_traverse
 
         return points_to_traverse
 
@@ -112,7 +110,7 @@ class TrajectoryGenerator:
         top_maxlim = top_maxlim_kmph/3.6
         bottom_maxlim = bottom_maxlim_kmph/3.6
         g = 9.8
-        max_deceleration = 0.25*g
+        max_deceleration = 0.1*g
         curve_r_to_speed_gain = 10
         E_budget = self.energy_budget*budget_multiplier
 
@@ -141,7 +139,7 @@ class TrajectoryGenerator:
             break_lim_squared = next_path_v**2 + 2*max_deceleration*breaking_distance
             break_lim = np.sqrt(break_lim_squared)
 
-            path_max_speed = max(min(curve_lim, break_lim, top_maxlim), bottom_maxlim)
+            path_max_speed = min(max(min(curve_lim, top_maxlim), bottom_maxlim), break_lim)
 
             next_path_v = path_max_speed
 
@@ -194,14 +192,6 @@ class TrajectoryGenerator:
     def output(self, instant):
         return self.states
 
-# def get_entire_distance(positions: np.ndarray):
-#     distance = np.zeros(positions.shape[0])
-
-#     for i in range(1, positions.shape[0]):
-#         distance[i] = np.linalg.norm(positions[i] - positions[i-1])
-
-    # return np.sum(distance)
-
     @staticmethod
     def _calc_path_lengths(positions: np.ndarray):
         """ calculates the lengths between waypoints
@@ -232,8 +222,7 @@ class TrajectoryGenerator:
     @staticmethod
     def _opt_speeds(v_i, path_lengths, min_speeds, max_speeds, mass, idle_power, E_budget):
         N = len(path_lengths)
-        cost_scale = 256
-        print(N)
+        cost_scale = 256 # numerical stability
 
         def travel_time(path_velocities):  # Optimization cost, total time of travel
             path_travel_times = np.divide(path_lengths, path_velocities)
@@ -245,10 +234,6 @@ class TrajectoryGenerator:
         def jac(path_velocities):  # jacobian of travel time
             jac = - np.divide(path_lengths, path_velocities**2)/cost_scale
             return jac
-
-        # def hess(path_velocities):  # Hessian of travel time
-        #     hess = np.diag(2 * np.divide(path_lengths, path_velocities**3))
-        #     return hess / cost_scale
 
         def total_E_spent(path_velocities):
             v = np.block([v_i, path_velocities])
@@ -267,8 +252,7 @@ class TrajectoryGenerator:
         sol = scipy.optimize.minimize(cost, ini_v, method='SLSQP', jac=jac, bounds=bnds,
                                       constraints=cons, options={"maxiter": 3000})
         if not sol.success: # print some info if optimization failed
-            print(bnds)
-            print(sol)
+            print('Optimizer did not find optimal solution, continuing with approximate solution')
 
         # append final velocity for final path
         velocities = np.block([sol.x, 0])
