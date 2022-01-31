@@ -5,7 +5,7 @@ import numpy as np
 
 def center_of_mass_position(m: int, n: int) -> Tuple:
     """ Calculates the center of mass position, assuming that the car's mass
-    is uniformely distributed in an mxn grid.
+    is uniformly distributed in an mxn grid.
     """
     d = 0.64
     W = 2 * d
@@ -30,7 +30,7 @@ def center_of_mass_position(m: int, n: int) -> Tuple:
 
 def moment_of_inertia(m: int, n: int) -> float:
     """ Calculates the moment of inertia of the car, assuming that the car's mass
-    is uniformely distributed in an mxn grid.
+    is uniformly distributed in an mxn grid.
     """
     d = 0.64
     W = 2 * d

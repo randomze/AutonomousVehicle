@@ -3,11 +3,12 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 
-from testing.test_utils import run_sims, fetch_sim_data
 from sim_settings import SimSettings, def_car_constants, def_controller_parameters
+from testing.test_utils import run_sims, fetch_sim_data
 
 
 if __name__=='__main__':
+    # Setup a series of test conditions, trying different deadzone thresholds
     settings_deadzones = [
         SimSettings(
             sim_time=200,
@@ -47,6 +48,7 @@ if __name__=='__main__':
 
     run_sims(settings_deadzones)
 
+    # Unpack the data into easier to work with variables
     simulation_data = [fetch_sim_data(s) for s in settings_deadzones]
 
     thresholds = [s.controller_parameters['deadzone_velocity_threshold'] for s in settings_deadzones]
@@ -58,6 +60,7 @@ if __name__=='__main__':
     deadzone_velocity_threshold_values = [data.settings.controller_parameters['deadzone_velocity_threshold'] for data in simulation_data]
     energy_budget_values = [data.settings.energy_budget for data in simulation_data]
 
+    # Setup the plot figures
     plt.figure(0)
     plt.title("Energy spent vs. time for different velocity deadzone thresholds")
 
@@ -67,6 +70,7 @@ if __name__=='__main__':
     x = []
     line1 = []
     line2 = []
+    # For each simulation, plot quantities of interest
     for simulation in range(len(simulation_data)):
 
         if simulation_data[simulation].collisions != 0:

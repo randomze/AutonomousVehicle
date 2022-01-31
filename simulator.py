@@ -49,9 +49,9 @@ class SimInstant:
 class Simulator:
     """ Simulator main class. 
 
-    Handles the numerical simulation of the car model and envionment,
-    aswell as instantiation and managment of all the important objects in the developed system's
-    architecure.
+    Handles the numerical simulation of the car model and environment,
+    as well as instantiation and management of all the important objects in the developed system's
+    architecture.
     """
     def __init__(self, settings: SimSettings):
         """ Unpack the simulation settings data into the simulator's internal variables.
@@ -119,24 +119,24 @@ class Simulator:
         if controller_reference == 0:
             tracking_error = np.linalg.norm(reference_trajectory[controller_reference] - car_position)
         else:
-            # get line uniting to previous waypoint
+            # Get line uniting to previous waypoint
             direction_vector = reference_trajectory[controller_reference, :] - reference_trajectory[controller_reference - 1, :]
 
-            # if it has length 0 (the waypoints lie on top of eachother) just measure the distance to the waypoint
+            # If it has length 0 (the waypoints lie on top of each other) just measure the distance to the waypoint
             if np.linalg.norm(direction_vector) == 0:
                 tracking_error = np.linalg.norm(reference_trajectory[controller_reference] - car_position)
-            # otherwise, measure the distance to the line
+            # Otherwise, measure the distance to the line
             else:
-                # normalize direction vector
+                # Normalize direction vector
                 direction_vector = direction_vector / np.linalg.norm(direction_vector)
 
-                # get the car position relative to the previous waypoint
+                # Get the car position relative to the previous waypoint
                 relative_car_position = car_position - reference_trajectory[controller_reference - 1, :]
 
-                # compute the distance along the trajectory of the relative car position
+                # Compute the distance along the trajectory of the relative car position
                 distance_along_path = np.inner(relative_car_position, direction_vector)
 
-                # compute error to trajectory using pythagoras
+                # Compute error to trajectory using pythagoras
                 tracking_error = np.sqrt(max(np.linalg.norm(relative_car_position)**2 - distance_along_path**2, 0))
         self.tracking_error_pos.append(tracking_error)
 
@@ -215,7 +215,7 @@ class Simulator:
             t0 = time.time()
             for sim_instant in np.arange(instant, instant + self.step_size_plot, self.step_size_sim):
 
-                # Accounts for mistmatches between the simulation step size and the plot step size
+                # Accounts for mismatches between the simulation step size and the plot step size
                 if sim_instant > self.final_time_max:
                     return
                 

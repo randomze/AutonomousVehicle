@@ -44,7 +44,7 @@ class MapVisualizer:
     
     @cached(class_func=True, folder="road blocks")
     def load_road_blocks(self, road_edges: np.ndarray, meters_per_pixel: float, block_size_multiplier: float = 0.999) -> np.ndarray:
-        """ Loads the road blocks from the edges. Used for colisions.
+        """ Loads the road blocks from the edges. Used for collisions.
         """
         block_pixels_x, block_pixels_y = np.where(road_edges > 0)
         block_pixels = np.stack((block_pixels_x, block_pixels_y), axis=1)

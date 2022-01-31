@@ -1,9 +1,8 @@
 from __future__ import annotations
-
-import sys
+import multiprocessing 
 import os
 import pickle
-import multiprocessing 
+import sys
 
 import numpy as np
 
@@ -11,15 +10,21 @@ from performance.cache_utils import cache_dir
 from simulator import SimData, Simulator
 from sim_settings import SimSettings, def_car_constants, def_controller_parameters
 
+# Setup the default simulation folder
 sims_folder = 'sims'
 if not os.path.exists(os.path.join(cache_dir, sims_folder)):
     os.mkdir(os.path.join(cache_dir,sims_folder))
 
 def run_sims(settings_list: list[SimSettings], batch_size: int = -1):
+    """ Run a set of simulations in parallel, with as many simultaneous threads as the computer's
+    CPU cores by default.
+    """
     if batch_size == -1:
         batch_size = multiprocessing.cpu_count()
 
     args = []
+    # For each simulation in the list, setup it's cache and prepare the arguments that must be
+    # passed to the simulation runner in the proper way
     for settings in settings_list:
         key = str(hash(settings))
         sim_folder  = os.path.join(cache_dir, sims_folder, key )
@@ -37,13 +42,19 @@ def run_sims(settings_list: list[SimSettings], batch_size: int = -1):
 
     print(f"From {len(settings_list)} simulations, {len(settings_list) - len(args)} were already done")
 
+    # Run the simulations concurrently with a pool of worker threads
     with multiprocessing.Pool(batch_size) as pool:
         pool.map(run_sim_star_wrapper, args)
 
 def run_sim_star_wrapper(args):
+    """ Wrapper function to circumvent the multiprocessing libraries interface.
+    """
     return run_sim(*args)
 
 def run_sim(settings: SimSettings, data_file: os.PathLike, stdout_file: os.PathLike = None):
+    """ Run the simulation with the given settings, saving the output to the passed argument and
+    eventually saving the output to the console to a file as well.
+    """
     if not stdout_file is None:
         sys.stdout = open(stdout_file, 'w')
 
@@ -52,6 +63,8 @@ def run_sim(settings: SimSettings, data_file: os.PathLike, stdout_file: os.PathL
     sim.save_data(data_file, settings=settings)
 
 def fetch_sim_data(settings: SimSettings) -> SimData:
+    """ De-serialize simulation data from file into the Simulation Data data structures.
+    """
     key = str(hash(settings))
     sim_folder  = os.path.join(cache_dir, sims_folder, key )
     sim_data_file = os.path.join(sim_folder, 'sim_data.pkl')
@@ -63,6 +76,7 @@ def fetch_sim_data(settings: SimSettings) -> SimData:
 
 if __name__ == '__main__':
 
+    # A simple set of tests to validate the functioning of the functions of this module
     settings_lst = [
         SimSettings(), # default settings
         SimSettings(car_constants=def_car_constants(idle_power=10)),
