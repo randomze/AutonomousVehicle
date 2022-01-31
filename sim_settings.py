@@ -50,7 +50,7 @@ def def_road_constants(lat=38.7367256, lon=-9.1388871, zoom=16, upsampling=3,
         'energy_reserve_ratio': energy_reserve_ratio,
     }
 
-def def_controller_parameters(force=1000, steering=100, deadzone_velocity_threshold=0.2, deadzone_continuity: bool = True, goal_crossing_distance=-2.54, park=0.1):
+def def_controller_parameters(force=733.33, steering=15.21, deadzone_velocity_threshold=0.2, deadzone_continuity: bool = True, goal_crossing_distance=-2.54, park=0.1):
     return {
         'force': force,
         'steering': steering,
@@ -84,7 +84,7 @@ class SimSettings:
     road_constants: Dict = field(default_factory=def_road_constants)
     controller_parameters: Dict = field(default_factory=def_controller_parameters)
     traj_endpoints: tuple = TrajectoryPreset.Balanced1.value
-    energy_budget: tuple = (1e6, None)
+    energy_budget: tuple = (None, 10)
 
     # visualization
     vis_window: tuple = ((-20, 20), (-20, 20))

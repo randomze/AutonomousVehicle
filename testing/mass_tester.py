@@ -19,7 +19,10 @@ class SimBundle:
 
 
 def test_bundles(bundles: list[SimBundle]):
-    sims = [simulation for bundle in bundles for simulation in bundle ]
+    sims = []
+    for bundle in bundles:
+        for sim in bundle:
+            sims.append(sim)
     run_sims(sims)
     
 
@@ -140,12 +143,12 @@ if __name__ == '__main__':
     parameter_vars = [
         SimSettings(controller_parameters=def_controller_parameters(
             steering=steering_vals,
-            force=force_vals,
-            goal_crossing_distance=goal_crossing_distance_vals,
+            force=733.33,
+            goal_crossing_distance=-2.0,
         ))
-        for goal_crossing_distance_vals in np.linspace(-3, 0, num=10)
-        for force_vals in np.linspace(100, 2000, num=25)
-        for steering_vals in np.linspace(10, 200, num=10)
+        #for goal_crossing_distance_vals in np.linspace(-3, 0, num=10)
+        #for force_vals in np.linspace(100, 2000, num=25)
+        for steering_vals in np.linspace(1, 200, num=15)
     ]
 
     cost_fcn_gains = np.array((1, 1/2, 1/2, 1, 1, 1))
@@ -161,15 +164,23 @@ if __name__ == '__main__':
     print("cost components raw: ", len(cost_components_raw))
 
     cost_components = []
-    for component in cost_components_raw:
+    good_bundles = []
+    for idx, component in enumerate(cost_components_raw):
         if component == np.inf:
             continue
+        print(component)
+        good_bundles.append(bundles[idx])
         cost_components.append(component)
+    
     print("cost components: ", len(cost_components))
     cost_components_filtered = []
-    for component in cost_components:
+    actually_good_bundles = []
+    for idx, component in enumerate(cost_components):
         if component[4]*wheel_radius < car_max_torque: # ignore cases where there's unrealistic torque
             cost_components_filtered.append(component)
+            actually_good_bundles.append(good_bundles[idx])
+
+    
     print("cost components filtered: ", len(cost_components_filtered))
     cost_components = np.abs(np.array(cost_components_filtered))
     print("cost components: ", len(cost_components))
@@ -191,10 +202,10 @@ if __name__ == '__main__':
     idx_worst = np.array(idxs[-10:])
 
     print('Best controller parameters:')
-    show_bundle_results(bundles, cost_components, costs, idxs_best, cost_fcn_gains)
+    show_bundle_results(actually_good_bundles, cost_components, costs, idxs_best, cost_fcn_gains)
 
     print('Worst controller parameters:')
-    show_bundle_results(bundles, cost_components, costs, idx_worst, cost_fcn_gains)
+    show_bundle_results(actually_good_bundles, cost_components, costs, idx_worst, cost_fcn_gains)
 
 
 

@@ -125,6 +125,7 @@ class Simulator:
         self.tracking_error_pos.append(tracking_error)
 
     def save_data(self, filename: str = 'sim_data.pkl', settings: Union[SimSettings, None] = None, video_file: str = 'simulation.mp4'):
+        print('collisions', self.collisions)
         sim_data = SimData(
             settings=settings,
             trajectory=np.array(self.trajectory_generator.states),
@@ -272,22 +273,15 @@ if __name__ == "__main__":
     # all the possible parameters are defined in sim_settings.py
     settings = SimSettings(
         # visualization parameters
-        step_size_plot=0.5,
+        step_size_plot=0.1,
         visualization=True,
         view_while_sim=True,
-        vis_window=((-30, 30), (-30, 30)),
 
-        # simulation parameters
-        controller_parameters=def_controller_parameters(
-            steering=115.555,
-            force=733.33,
-            goal_crossing_distance=-2.0,
-            deadzone_velocity_threshold=0.15,
-        ),
+        traj_endpoints=TrajectoryPreset.VerySharpTurn.value,
 
         # to set energy budget in J, set first element to the desired value
         # to estimate enrgy budget, set second element to desired speed in m/s
-        energy_budget=(None, 30/3.6),
+        #energy_budget=(None, 30/3.6),
     )
 
     sim = Simulator(settings)

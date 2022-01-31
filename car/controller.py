@@ -64,7 +64,7 @@ class Controller:
                                         [-np.sin(heading), np.cos(heading)]])
         position_error_body_frame = body_frame_rotation @ x_error_body_frame
 
-        steering_error = np.arctan2(position_error_body_frame[1], position_error_body_frame[0]-self.L) - car_state_v_cm[4]
+        steering_error = np.arctan2(position_error_body_frame[1], position_error_body_frame[0]) - car_state_v_cm[4]
 
         steering_apply = self.gain_steering * steering_error
         force_apply = 0
