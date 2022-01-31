@@ -56,3 +56,11 @@ To run each of these tests, the user must run the following command:
 ```
 python3 -m testing.[controller_tests/deadzone_tests/mass_tester]
 ```
+
+## Requirements
+
+In order to run this software, some external python libraries are required. To install them
+simply run:
+```
+pip3 install -r requirements.txt
+```
