@@ -79,7 +79,7 @@ class Controller:
             velocity_reference = 0.1 * x_error_body_frame
             force_apply = self.gain_force * (velocity_reference - car_state_v_cm[0])
 
-            if velocity_cm < 0.001:
+            if velocity_cm < 0.1:
                 self.goal_achieved = True
 
         if energy_spent > self.energy_budget: # the car ran out of energy

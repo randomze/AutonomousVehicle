@@ -39,8 +39,9 @@ class TrajectoryGenerator:
         self.lengths = self._calc_path_lengths(positions=self.path)
 
         max_energy_budget, max_velocity = energy_budget
+        energy_with_reserve_ratio = 1/(1-energy_reserve_ratio)
         if not max_energy_budget:
-            self.energy_budget = self._estimate_energy_budget(path_lengths=self.lengths,
+            self.energy_budget = energy_with_reserve_ratio*self._estimate_energy_budget(path_lengths=self.lengths,
                                                               idle_power=self.idle_power,
                                                               mass=self.vehicle_mass,
                                                               max_velocity=max_velocity)
@@ -51,7 +52,7 @@ class TrajectoryGenerator:
             self.top_max_speed_kmh = 30
             self.bottom_max_speed_kmh = 7
 
-            estimation = self._estimate_energy_budget(path_lengths=self.lengths,
+            estimation = energy_with_reserve_ratio*self._estimate_energy_budget(path_lengths=self.lengths,
                                                       idle_power=self.idle_power,
                                                       mass=self.vehicle_mass,
                                                       max_velocity=self.top_max_speed_kmh / 3.6)
@@ -148,7 +149,7 @@ class TrajectoryGenerator:
         max_speeds = np.array(max_speeds)
         # Round speed limits discrete values
         k = 10  # number of values for speed limits (besides 0)
-        max_speeds = np.round(max_speeds*k/top_maxlim)*top_maxlim/k
+        max_speeds = np.ceil(max_speeds*k/top_maxlim)*top_maxlim/k
         # Join paths with equal speed limits
         equal_tol = top_maxlim*1e-2
         new_path_lengths = [self.lengths[0]]
@@ -252,8 +253,11 @@ class TrajectoryGenerator:
         sol = scipy.optimize.minimize(cost, ini_v, method='SLSQP', jac=jac, bounds=bnds,
                                       constraints=cons, options={"maxiter": 3000})
         if not sol.success: # print some info if optimization failed
-            print('Optimizer did not find optimal solution, continuing with approximate solution')
-
+            print('Trajectory generator did not find optimal solution, continuing anyway')
+            print('Energy budget might be impossible to meet or energy reserve ratio requirements too high')
+            print(f'Trajectory estimated energy consumption: {total_E_spent(sol.x):.2f}')
+            print(f'Available energy budget (reserve excluded): {E_budget:.2f}')
+            
         # append final velocity for final path
         velocities = np.block([sol.x, 0])
         return velocities
@@ -266,4 +270,4 @@ class TrajectoryGenerator:
         estimated_idle_power = idle_power * estimated_time
         estimated_kinetic_energy = 0.5 * mass * max_velocity**2
 
-        return (estimated_kinetic_energy + estimated_idle_power) * 1.3 # multiplier to account for losses which are unnaccounted for (braking)
+        return (estimated_kinetic_energy + estimated_idle_power) * 1.5 # multiplier to account for losses which are unnaccounted for (braking)

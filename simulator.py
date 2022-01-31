@@ -272,7 +272,7 @@ if __name__ == "__main__":
 
     settings = SimSettings(
         # trajectory definition
-        #traj_endpoints=TrajectoryPreset.SharpTurns.value,
+        sim_time=200,
 
         # visualization parameters
         step_size_plot=0.5,
@@ -287,6 +287,7 @@ if __name__ == "__main__":
             goal_crossing_distance=-2.0,
             deadzone_velocity_threshold=0.15,
         ),
+        energy_budget=(None, 30/3.6),
     )
 
     sim = Simulator(settings)
