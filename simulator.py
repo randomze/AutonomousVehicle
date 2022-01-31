@@ -31,6 +31,8 @@ class SimData:
 
     collisions: int
 
+    energy_budget: float
+
     simout: list[SimInstant]
 
 # Dataclass for storing each simulation instant's important variables, for posterior treatment
@@ -150,7 +152,8 @@ class Simulator:
             tracking_error_pos=np.array(self.tracking_error_pos),
             tracking_error_vel=np.array(self.tracking_error_vel),
             simout=self.instants,
-            collisions=self.collisions
+            collisions=self.collisions,
+            energy_budget=self.energy_budget
         )
         with open(filename, 'wb') as f:
             pickle.dump(sim_data, f)
