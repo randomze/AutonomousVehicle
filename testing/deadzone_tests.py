@@ -14,36 +14,9 @@ if __name__=='__main__':
             sim_time=200,
             controller_parameters=def_controller_parameters(
                 deadzone_velocity_threshold=val,
-                steering=115.52,
-                force=733.33,
-                goal_crossing_distance=-2.0,
             )
         )
-        for val in np.arange(0.0, 0.5, 0.01)
-    ]
-    settings_deadzones += [
-        SimSettings(
-            sim_time=200,
-            controller_parameters=def_controller_parameters(
-                deadzone_velocity_threshold=val,
-                steering=115.5,
-                force=733.33,
-                goal_crossing_distance=-2.0,
-            )
-        )
-        for val in np.arange(0.5, 5, 0.5)
-    ]
-    settings_deadzones += [
-        SimSettings(
-            sim_time=200,
-            controller_parameters=def_controller_parameters(
-                deadzone_velocity_threshold=val,
-                steering=115.5,
-                force=733.33,
-                goal_crossing_distance=-2.0,
-            )
-        )
-        for val in np.arange(0.5, 3, 0.1)
+        for val in np.arange(0.0, 1, 0.01)
     ]
 
     run_sims(settings_deadzones)
@@ -59,8 +32,7 @@ if __name__=='__main__':
     deadzone_velocity_threshold_values = [data.settings.controller_parameters['deadzone_velocity_threshold'] for data in simulation_data]
 
     # Setup the plot figures
-    plt.figure(0)
-    plt.title("Energy spent vs. time for different velocity deadzone thresholds")
+    plt.figure(0, figsize=(3, 7))
 
     ax = plt.subplot(111)        
     axes2 = ax.twinx()
@@ -86,15 +58,19 @@ if __name__=='__main__':
         energy_budget = float(simulation_data[simulation].energy_budget)
         label=f"T={deadzone_velocity_threshold:.2f}, meanVerror={mean_velocity_error:.2f} (E={energy_budget:.0f})"
 
-        line1.append(energy[-1])
+        line1.append(energy[-1]/1000.0)
         line2.append(time[-1])
         x.append(thresholds[simulation])
 
     ax.plot(x, line1, 'o', color='C0')
     axes2.plot(x, line2, 'o', color='C1')
-    ax.set_ylabel('Energy spent', color='C0')
+    ax.set_ylabel('Energy spent [kJ]', color='C0')
     ax.set_xlabel('Deadzone velocity threshold')
-    axes2.set_ylabel('Time', color='C1')
+    axes2.set_ylabel('Time [s]', color='C1')
 
+    ax.set_ylim(bottom=0)
+    axes2.set_ylim(bottom=0)
 
-    plt.show()
+    plt.tight_layout()
+    plt.savefig('deadzone_tests.pdf')
+    #plt.show()
