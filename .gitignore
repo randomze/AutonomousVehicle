@@ -13,6 +13,11 @@ slprj*
 
 *key
 
+# images and data
+*.pdf
+*.json
+*.zip
+
 
 assets/* 
 cache/
