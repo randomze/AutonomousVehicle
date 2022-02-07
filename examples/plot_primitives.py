@@ -116,7 +116,7 @@ def plot_sims_bundle(bundles: list[list[SimData]], data_folder: str = None, labe
     trajectory_names = [[TrajectoryPreset(traj).name for traj in bundle_traj] for bundle_traj in trajectories]
 
     # make a bar chart of energy_used_ratio for each trajectory
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=(10, 7.5))
     width = 0.3
     N = len(bundles)
     x = np.arange(len(trajectory_names[0]))
